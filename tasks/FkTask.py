@@ -5,6 +5,7 @@ from typing import Optional as _Optional
 import PIL.Image as _Pillow
 from PIL.Image import Image as _PillowImage
 
+import utils
 from utils import KNOWN_CAPTION_TEXT_EXTENSIONS as _KNOWN_CAPTION_TEXT_EXTENSIONS
 
 
@@ -14,6 +15,7 @@ class FkImage:
 
         self._image = image
         self._working_image = None
+        self._cv2_image = None
 
         self._caption_text = caption_text
 
@@ -30,6 +32,14 @@ class FkImage:
     @image.setter
     def image(self, image: _PillowImage):
         self._working_image = image
+        self._cv2_image = None
+
+    @property
+    def cv2_image(self):
+        if not self._cv2_image:
+            self._cv2_image = utils.pil2cv(self.image)
+
+        return self._cv2_image
 
     @property
     def caption_text(self):

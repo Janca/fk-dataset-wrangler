@@ -1,4 +1,4 @@
-from tasks import FkTask as _FkTask, FkImage
+from tasks import FkTask as _FkTask, FkImage as _FkImage
 
 
 class ImageFilter(_FkTask):
@@ -16,7 +16,7 @@ class ImageFilter(_FkTask):
         self.maximum_dimensions = maximum_dimensions
         self.modes = modes
 
-    def process(self, image: FkImage) -> bool:
+    def process(self, image: _FkImage) -> bool:
         width, height = image.image.size
         mode = image.image.mode
 

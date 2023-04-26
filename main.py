@@ -1,6 +1,6 @@
 import time
 
-import tasks.basic
+import tasks
 
 if __name__ == '__main__':
     image_pipeline = tasks.FkPipeline("./input", "./output", image_ext=".jpg")
@@ -11,11 +11,15 @@ if __name__ == '__main__':
     caption_normalizer = tasks.basic.CaptionNormalizer()
     caption_filter = tasks.basic.CaptionFilter()
 
+    blur_filter = tasks.cv.BlurFilter(600)
+
     image_pipeline.add_task(caption_normalizer)
     image_pipeline.add_task(caption_filter)
 
     image_pipeline.add_task(image_filter)
     image_pipeline.add_task(image_scaler)
+
+    image_pipeline.add_task(blur_filter)
 
     image_pipeline.start()
 

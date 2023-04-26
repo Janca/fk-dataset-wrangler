@@ -1,6 +1,7 @@
 import hashlib as _hashlib
 import os as _os
 import queue as _queue
+import traceback
 from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor, Future as _Future
 from threading import Thread as _Thread
 from typing import Optional as _Optional
@@ -23,7 +24,6 @@ class _FkAltExecutor:
     def __init__(
             self, pipeline: "FkPipeline",
             task: _FkTask,
-            queue_depth: int = -1,
             max_workers: int = 10,
             max_attempts: int = 5
     ):
@@ -33,7 +33,7 @@ class _FkAltExecutor:
         self._pipeline = pipeline
         self._task = task
 
-        self._queue: _queue.Queue[_FkAltTaskContext] = _queue.Queue(maxsize=queue_depth)
+        self._queue: _queue.Queue[_FkAltTaskContext] = _queue.Queue()
         self._next_executor: _Optional[_FkAltExecutor] = None
 
         workers: list[_Thread] = []
@@ -80,7 +80,9 @@ class _FkAltExecutor:
                         task_image.close()
                         continue
 
-                except Exception:
+                except Exception as e:
+                    traceback.print_exception(e)
+                    
                     attempts = task_context.attempts
                     if attempts > self._max_attempts:
                         task_image.close()
@@ -215,6 +217,7 @@ class FkPipeline:
             loaded_directories += 1
             for filename in _os.listdir(dirpath):
                 filepath = _os.path.join(dirpath, filename)
+
                 if _os.path.isdir(filepath):
                     scan_dirpath(filepath)
 
@@ -231,6 +234,7 @@ class FkPipeline:
 
         _os.makedirs(self.output_dirpath, exist_ok=True)
 
+        print("Scanning directory:", self.input_dirpath)
         scan_dirpath(self.input_dirpath)
 
         print("Scanned", loaded_directories, "directories...")
