@@ -32,9 +32,12 @@ class ImageScaler(_FkTask):
         width = int(width)
         height = int(height)
 
-        image.image = image.image.resize(
+        resized_image = image.image.resize(
             size=(width, height),
             resample=_Pillow.LANCZOS
         )
+
+        image.image.close()
+        image.image = resized_image
 
         return True

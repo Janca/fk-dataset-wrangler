@@ -1,4 +1,4 @@
-from tasks import FkTask as _FkTask, FkImage
+from tasks import FkTask as _FkTask, FkImage as _FkImage
 
 
 class CaptionFilter(_FkTask):
@@ -13,7 +13,7 @@ class CaptionFilter(_FkTask):
         self.required_tags = required_tags
         self.blacklist_tags = blacklist_tags
 
-    def process(self, image: FkImage) -> bool:
+    def process(self, image: _FkImage) -> bool:
         caption_text = image.caption_text
 
         if not caption_text and self.require_caption_text:

@@ -1,16 +1,16 @@
-import hashlib as _hashlib
 import os as _os
 import queue as _queue
-import traceback
+import time as _time
+import traceback as _traceback
 from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor, Future as _Future
 from threading import Thread as _Thread
 from typing import Optional as _Optional
 
-from tasks.FkTask import FkImage as _FkImage, FkTask as _FkTask
-from utils import KNOWN_IMAGE_EXTENSIONS as _KNOWN_IMAGE_EXTENSIONS
+from tasks.FkTask import FkImage as _FkImage, FkTask as _FkTask, FkReportableTask as _FkExTask
+from utils import KNOWN_IMAGE_EXTENSIONS as _KNOWN_IMAGE_EXTENSIONS, format_timestamp as _format_timestamp
 
 
-class _FkAltTaskContext:
+class _FkTaskContext:
     def __init__(self, image: _FkImage):
         self._image = image
         self.attempts = 0
@@ -19,8 +19,14 @@ class _FkAltTaskContext:
     def image(self):
         return self._image
 
+    def destroy(self):
+        self._image.destroy()
 
-class _FkAltExecutor:
+    def __del__(self):
+        self.destroy()
+
+
+class _FkTaskExecutor:
     def __init__(
             self, pipeline: "FkPipeline",
             task: _FkTask,
@@ -33,8 +39,11 @@ class _FkAltExecutor:
         self._pipeline = pipeline
         self._task = task
 
-        self._queue: _queue.Queue[_FkAltTaskContext] = _queue.Queue()
-        self._next_executor: _Optional[_FkAltExecutor] = None
+        self._queue: _queue.Queue[_FkTaskContext] = _queue.Queue()
+        self._next_executor: _Optional[_FkTaskExecutor] = None
+
+        self._processed_images = 0
+        self._discarded_images = 0
 
         workers: list[_Thread] = []
         for _ in range(self._max_workers):
@@ -44,7 +53,7 @@ class _FkAltExecutor:
 
         self._workers = workers
 
-    def submit(self, task: _FkAltTaskContext):
+    def submit(self, task: _FkTaskContext):
         self._queue.put(task, block=True)
 
     def _thread_fn(self):
@@ -58,6 +67,10 @@ class _FkAltExecutor:
                     continue
 
                 task_context.attempts += 1
+
+                if task_context.attempts == 1:
+                    self._processed_images += 1
+
                 task_image = task_context.image
 
                 # noinspection PyBroadException
@@ -66,86 +79,36 @@ class _FkAltExecutor:
 
                     if task_successful:
                         if self._next_executor:
-                            next_task_context = _FkAltTaskContext(task_image)
-                            self._next_executor.submit(next_task_context)
+                            task_context.attempts = 0
+                            self._next_executor.submit(task_context)
 
                         else:  # no more executors; save image
                             try:
-                                self._pipeline.save(task_image)
-
+                                self._pipeline.save(task_context)
                             except:
                                 pass
 
                     else:
-                        task_image.close()
+                        if task_context.attempts == 1:
+                            self._discarded_images += 1
+
+                        task_context.destroy()
+
                         continue
 
                 except Exception as e:
-                    traceback.print_exception(e)
-                    
+                    _traceback.print_exception(e)
+
+                    # noinspection PyUnboundLocalVariable
                     attempts = task_context.attempts
                     if attempts > self._max_attempts:
-                        task_image.close()
+                        task_context.destroy()
                         continue
 
                     self.submit(task_context)
 
             except _queue.Empty:
                 continue
-
-
-class _FkTaskExecutor:
-    def __init__(self, pipeline: "FkPipeline", task: _FkTask, max_workers: int = 10, max_attempts: int = 5):
-        self.max_attempts = max_attempts
-
-        self._pipeline = pipeline
-        self._task = task
-        self._tpe = _ThreadPoolExecutor(max_workers)
-
-        self._next_executor: _Optional[_FkTaskExecutor] = None
-        self._futures: list[_Future] = []
-
-    def submit(self, image: _FkImage):
-        # noinspection PyProtectedMember
-        if self._pipeline._shutdown:
-            raise RuntimeError("Pipeline is shutdown.")
-
-        task_future = self._tpe.submit(lambda img=image: self._worker_fn(img))
-        self._futures.append(task_future)
-
-    def _worker_fn(self, image: _FkImage):
-        task_attempt = 0
-        task_successful = False
-
-        # noinspection PyProtectedMember
-        while not task_successful and task_attempt < self.max_attempts and not self._pipeline._shutdown:
-            try:
-                task_successful = self._task.process(image)
-                if task_successful:
-                    if self._next_executor:  # submit image result to next executor
-                        self._next_executor.submit(image)
-
-                    else:  # next executor is none; save image
-                        try:
-                            self._pipeline.save(image)
-                        except Exception as e:
-                            image.close()
-
-                else:  # task was not successful; close image
-                    image.close()
-                    break
-
-            except KeyboardInterrupt:
-                break
-
-            except Exception as e:
-                task_attempt += 1
-                if task_attempt >= self.max_attempts:
-                    break
-
-    @property
-    def futures(self):
-        return self._futures
 
 
 class FkPipeline:
@@ -162,13 +125,22 @@ class FkPipeline:
         self.image_ext = image_ext
         self.caption_text_ext = caption_text_ext
 
-        self._executors: list[_FkAltExecutor] = []
+        self._executors: list[_FkTaskExecutor] = []
 
         self._save_futures: list[_Future] = []
         self._save_executor = _ThreadPoolExecutor(max_workers=1)
 
         self._started = False
         self._shutdown = False
+
+        self._dry_run = False
+
+        self._start_time = -1
+        self._shutdown_time = -1
+
+        self._processed_image_count = 0
+        self._scanned_directory_count = 0
+        self._images_saved_count = 0
 
     @property
     def active(self):
@@ -184,21 +156,18 @@ class FkPipeline:
             if not executor._queue.empty():
                 return True
 
-            # for future in executor.futures:
-            #     if not future.done():
-            #         return True
-
         return False
 
     def add_task(self, task: _FkTask, max_workers: int = 4, max_attempts: int = 5):
         if self._started:
             raise RuntimeError("Pipeline already started.")
 
-        task_executor = _FkAltExecutor(self, task, max_workers, max_attempts)
+        task_executor = _FkTaskExecutor(self, task, max_workers, max_attempts)
         self._executors.append(task_executor)
 
-    def start(self):
+    def start(self, dry_run: bool = False):
         self._started = True
+        self._dry_run = dry_run
 
         tasks_len = len(self._executors)
         for i in range(tasks_len - 1):
@@ -227,55 +196,105 @@ class FkPipeline:
                         continue
 
                     image = _FkImage(filepath)
-                    task_context = _FkAltTaskContext(image)
+                    task_context = _FkTaskContext(image)
                     entry_executor.submit(task_context)
 
                     loaded_images += 1
 
         _os.makedirs(self.output_dirpath, exist_ok=True)
 
+        self._start_time = _time.time()
+
         print("Scanning directory:", self.input_dirpath)
         scan_dirpath(self.input_dirpath)
 
-        print("Scanned", loaded_directories, "directories...")
-        print("Scanned", loaded_images, "images...")
+        self._processed_image_count = loaded_images
+        self._scanned_directory_count = loaded_directories
+
+        if loaded_images <= 0:
+            self.shutdown()
+
+    def report(self):
+        print()
+
+        for executor in self._executors:
+            # noinspection PyProtectedMember
+            executor_task = executor._task
+
+            print(executor_task.name)
+            print("-" * 42)
+
+            # noinspection PyProtectedMember
+            print(f"Processed Images: {executor._processed_images}")
+
+            # noinspection PyProtectedMember
+            print(f"Discarded Images: {executor._discarded_images}")
+
+            if isinstance(executor_task, _FkExTask):
+                print()
+
+                report = executor_task.report()
+                for report_item in report:
+                    if not report_item:
+                        print()
+
+                    else:
+                        description, value = report_item
+                        if isinstance(value, float):
+                            value = round(value, 3)
+
+                        print(f"{description}: {value}")
+
+            print()
+            print()
+
+        runtime_seconds = self._shutdown_time - self._start_time
+        runtime_formatted = _format_timestamp(runtime_seconds)
+
+        print("Pipeline Results")
+        print("-" * 42)
+
+        print(f"Directories scanned: {self._scanned_directory_count}")
+        print(f"Image files processed: {self._processed_image_count}")
+        print()
+
+        discarded_image_count = self._processed_image_count - self._images_saved_count
+
+        print(f"Images saved: {self._images_saved_count}")
+        print(f"Discarded images: {discarded_image_count}")
+        print()
+
+        print(f"Completed in: {runtime_formatted}")
+
+        print()
 
     def shutdown(self):
         self._shutdown = True
+        self._shutdown_time = _time.time()
+
         self._save_executor.shutdown(wait=True, cancel_futures=True)
 
-        # for executor in self._executors:
-        #     # noinspection PyProtectedMember
-        #     executor._tpe.shutdown(wait=True, cancel_futures=True)
+        self.report()
 
-    def save(self, image: _FkImage):
+    def save(self, task_context: _FkTaskContext):
         if self._shutdown:
             raise RuntimeError("Pipeline shutdown.")
 
-        save_future = self._save_executor.submit(lambda img=image: self._save_image(img))
+        if self._dry_run:
+            self._images_saved_count += 1
+            task_context.destroy()
+            return
+
+        # noinspection PyBroadException
+        def save_fn():
+            try:
+                task_context.image.save(self.output_dirpath, self.image_ext, self.caption_text_ext)
+                self._images_saved_count += 1
+                task_context.destroy()
+
+            except Exception as e:
+                _traceback.print_exception(e)
+                pass
+
+        save_future = self._save_executor.submit(save_fn)
         self._save_futures.append(save_future)
-
-    def _save_image(self, image: _FkImage):
-        filename_hash = _hashlib.sha256(image.basename.encode("utf-8")).hexdigest()
-
-        save_image_filepath = _os.path.join(
-            self.output_dirpath,
-            filename_hash + self.image_ext
-        )
-
-        image.image.save(save_image_filepath, quality=95 if self.image_ext in [".jpg", ".jpeg"] else None)
-        image.close()
-
-        if image.caption_text:
-            save_caption_text_filepath = _os.path.join(
-                self.output_dirpath,
-                filename_hash + self.caption_text_ext
-            )
-
-            with open(
-                    save_caption_text_filepath,
-                    "w+",
-                    encoding="utf-8",
-                    errors="ignore"
-            ) as caption_file:
-                caption_file.write(image.caption_text)

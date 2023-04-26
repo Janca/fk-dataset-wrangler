@@ -1,9 +1,16 @@
+import sys
 import time
 
 import tasks
 
 if __name__ == '__main__':
-    image_pipeline = tasks.FkPipeline("./input", "./output", image_ext=".jpg")
+    image_pipeline = tasks.FkPipeline(
+        "./input",
+        "./output",
+        # "F:\\StableDiffusion\\2023_02_24\\images",
+        # "F:\\StableDiffusion\\2023_02_24\\output",
+        image_ext=".jpg"
+    )
 
     image_filter = tasks.basic.ImageFilter(minimum_dimensions=(320, 320))
     image_scaler = tasks.basic.ImageScaler(768)
@@ -11,7 +18,7 @@ if __name__ == '__main__':
     caption_normalizer = tasks.basic.CaptionNormalizer()
     caption_filter = tasks.basic.CaptionFilter()
 
-    blur_filter = tasks.cv.BlurFilter(600)
+    blur_filter = tasks.cv.BlurFilter(1200)
 
     image_pipeline.add_task(caption_normalizer)
     image_pipeline.add_task(caption_filter)
@@ -26,7 +33,10 @@ if __name__ == '__main__':
     try:
         while image_pipeline.active:
             time.sleep(1)
+
     except KeyboardInterrupt:
+        print("Pipeline interrupted.")
         image_pipeline.shutdown()
+        sys.exit()
 
     image_pipeline.shutdown()
