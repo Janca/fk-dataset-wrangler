@@ -12,10 +12,7 @@ class BlurFilter(_FkReportableTask):
 
     # noinspection PyUnresolvedReferences
     def process(self, image: _FkImage) -> bool:
-        cv2_image = image.cv2_image
-
-        grayscale_image = _cv2.cvtColor(cv2_image, _cv2.COLOR_BGR2GRAY)
-        blur_score = _cv2.Laplacian(grayscale_image, _cv2.CV_64F).var()
+        blur_score = _cv2.Laplacian(image.cv2_grayscale_image, _cv2.CV_64F).var()
 
         self._blur_scores.append(blur_score)
         return blur_score >= self._blur_threshold

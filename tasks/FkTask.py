@@ -17,11 +17,16 @@ class FkImage:
 
         self._image = image
         self._cv2_image = None
+        self._cv2_grayscale_image = None
 
         self._caption_text = caption_text
+        self._destroyed = False
 
     @property
-    def image(self) -> _PillowImage:
+    def image(self) -> _Optional[_PillowImage]:
+        if self._destroyed:
+            return None
+
         if not self._image:
             temp_image = _Pillow.open(self.filepath)
             self._image = temp_image.copy()
@@ -36,6 +41,9 @@ class FkImage:
 
     @property
     def cv2_image(self):
+        if self._destroyed:
+            return None
+
         # noinspection PyTypeChecker,PyUnresolvedReferences
         def pil_to_cv(image: _PillowImage) -> _numpy.ndarray:
             """
@@ -81,13 +89,26 @@ class FkImage:
 
             return new_image
 
-        if not self._cv2_image:
+        if self._cv2_image is None:
             self._cv2_image = pil_to_cv(self.image)
 
         return self._cv2_image
 
     @property
+    def cv2_grayscale_image(self):
+        if self._destroyed:
+            return None
+
+        if self._cv2_grayscale_image is None:
+            self._cv2_grayscale_image = _cv2.cvtColor(self.cv2_image, _cv2.COLOR_BGR2GRAY)
+
+        return self._cv2_grayscale_image
+
+    @property
     def caption_text(self):
+        if self._destroyed:
+            return None
+
         if not self._caption_text:
             image_filename = self.filename
             parent_dirpath = self.dirname
@@ -130,7 +151,7 @@ class FkImage:
         )
 
         self.image.save(save_image_filepath, quality=95 if image_ext in [".jpg", ".jpeg"] else None)
-        self.close()
+        self.image.close()
 
         if self.caption_text:
             caption_text_filename = filename_hash + caption_text_ext
@@ -144,24 +165,24 @@ class FkImage:
             ) as caption_file:
                 caption_file.write(self.caption_text)
 
-    def close(self):
-        def close_image(image: _Optional[_PillowImage]):
-            if image:
-                try:
-                    image.close()
-                except:
-                    pass
-
-        if self._image is not None:
-            close_image(self._image)
-
     def destroy(self):
-        self.close()
+        if self._destroyed:
+            return
 
-        self.filepath = None
-        self._caption_text = None
-        self._cv2_image = None
-        self._image = None
+        self._destroyed = True
+        self._image.close()
+
+        # self.filepath = None
+        # self._caption_text = None
+        # self._cv2_image = None
+        # self._cv2_grayscale_image = None
+        # self._image = None
+
+        del self.filepath
+        del self._caption_text
+        del self._cv2_image
+        del self._cv2_grayscale_image
+        del self._image
 
 
 class FkTask(_abc.ABC):
