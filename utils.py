@@ -1,3 +1,5 @@
+import shutil as _shutil
+import urllib.request as _urllib_request
 from typing import Callable as _Callable
 
 import PIL.Image as _Pillow
@@ -61,3 +63,14 @@ def resize_image_aspect(image: _PillowImage, max_size: int, copy: bool = True) -
         size=(width, height),
         resample=_Pillow.LANCZOS
     )
+
+
+def download_file(url: str, dst: str) -> bool:
+    try:
+        with _urllib_request.urlopen(url) as response, open(dst, "wb") as dst_file:
+            _shutil.copyfileobj(response, dst_file)
+
+        return True
+
+    except:
+        return False

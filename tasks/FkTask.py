@@ -170,7 +170,9 @@ class FkImage:
             return
 
         self._destroyed = True
-        self._image.close()
+
+        if self._image is not None:
+            self._image.close()
 
         # self.filepath = None
         # self._caption_text = None
@@ -178,7 +180,6 @@ class FkImage:
         # self._cv2_grayscale_image = None
         # self._image = None
 
-        del self.filepath
         del self._caption_text
         del self._cv2_image
         del self._cv2_grayscale_image

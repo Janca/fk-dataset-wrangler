@@ -301,7 +301,7 @@ class FkPipeline:
         print(f"Discarded images: {discarded_image_count}")
         print()
 
-        images_per_second = self._processed_image_count / runtime_seconds
+        images_per_second = round(self._processed_image_count / runtime_seconds, 3)
         print(f"Images processed / second: {images_per_second}")
         print(f"Completed in: {runtime_formatted}")
 

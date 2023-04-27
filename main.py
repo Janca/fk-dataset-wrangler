@@ -3,17 +3,24 @@ import time
 
 import tasks
 
+_TASK_POOL_SIZES = {
+    "low": (10, 5, 1, 1),
+    "med": (20, 10, 5, 1),
+    "high": (30, 15, 10, 1),
+    "make-my-pc-hurt": (60, 40, 20, 2)
+}
+
 if __name__ == '__main__':
     image_pipeline = tasks.FkPipeline(
-        "E:\\StableDiffusion\\SD Datasets\\CivitAI\\2023_03_18\\dataset",
-        "E:\\StableDiffusion\\SD Datasets\\CivitAI\\2023_03_18\\output",
+        "F:\\StableDiffusion\\2023_02_24\\images",
+        "F:\\StableDiffusion\\2023_02_24\\output",
         image_ext=".jpg"
     )
 
-    low_resource_task_pool_size = 20
-    med_resource_task_pool_size = 10
-    high_resource_task_pool_size = 5
-    gpu_resource_task_pool_size = 1
+    task_pool_sizes = _TASK_POOL_SIZES["low"]
+
+    low_resource_task_pool_size, med_resource_task_pool_size, \
+        high_resource_task_pool_size, gpu_resource_task_pool_size = task_pool_sizes
 
     caption_normalizer = tasks.basic.CaptionNormalizer()
     caption_filter = tasks.basic.CaptionFilter()

@@ -1,3 +1,5 @@
+import os as _os
+
 import clip as _clip
 import numpy as _numpy
 import torch as _torch
@@ -31,9 +33,17 @@ class CHADScoreFilter(_FkReportableTask):
     def __init__(self, score_threshold: float):
         self.score_threshold = score_threshold
 
-        self._scorer_name = "chadscorer.pth"
-        self._device = "cuda:0" if _torch.cuda.is_available() else "cpu"
-        self._pt_state = _torch.load(self._scorer_name, map_location=_torch.device("cpu"))
+        self.scoring_model_path = "models/chadscorer.pth"
+
+        if not _os.path.exists(self.scoring_model_path):
+            print("Downloading scoring model:", self.scoring_model_path)
+            utils.download_file(
+                "https://github.com/grexzen/SD-Chad/blob/main/chadscorer.pth?raw=true",
+                self.scoring_model_path
+            )
+
+        self._device = "cuda" if _torch.cuda.is_available() else "cpu"
+        self._pt_state = _torch.load(self.scoring_model_path, map_location=_torch.device("cpu"))
 
         self._chad_predictor = _AestheticPredictor(768)
         self._chad_predictor.load_state_dict(self._pt_state)
@@ -42,7 +52,11 @@ class CHADScoreFilter(_FkReportableTask):
 
         self._chad_scores = []
 
-        clip_model, clip_preprocess = _clip.load("ViT-L/14", device=self._device)
+        vit_model_name = "ViT-L/14"
+        if not _os.path.exists(f"models/{vit_model_name}.pt"):
+            print("Downloading ViT-L/14")
+
+        clip_model, clip_preprocess = _clip.load("ViT-L/14", device=self._device, download_root="models")
 
         print(f"Chad scorer using device: {self._device}")
 
@@ -50,12 +64,9 @@ class CHADScoreFilter(_FkReportableTask):
         self._clip_preprocess = clip_preprocess
 
     def process(self, image: FkImage) -> bool:
-        chad_resized_image = utils.resize_image_aspect(image.image, 768)  # is a resize even need to help
-        # the memory balloon? needs moar testing
+        chad_image = self._clip_preprocess(image.image).unsqueeze(0).to(self._device)
 
-        chad_image = self._clip_preprocess(chad_resized_image).unsqueeze(0).to(self._device)
-
-        with _torch.no_grad():
+        with _torch.inference_mode():
             image_features1 = self._clip_model.encode_image(chad_image)
             image_features = image_features1 / image_features1.norm(dim=-1, keepdim=True)
 
@@ -65,15 +76,14 @@ class CHADScoreFilter(_FkReportableTask):
         t_features = _torch.from_numpy(image_features).to(self._device).float()
 
         score_iter = self._chad_predictor(t_features)
+        _torch.cuda.synchronize()
+
         score = score_iter.item()
 
         # score_iter = None
         # image_features = None
         # t_features = None
         # chad_image = None
-
-        chad_resized_image.close()
-        del chad_resized_image
 
         del score_iter
         del chad_image
