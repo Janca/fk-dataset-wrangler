@@ -1,2 +1,6 @@
 pillow~=9.5.0
-opencv-python
+opencv-python~=4.7.0.72
+numpy~=1.24.3
+clip-openai
+--extra-index-url https://download.pytorch.org/whl/cu116
+torch==1.13.1+cu116

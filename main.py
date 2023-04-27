@@ -10,9 +10,10 @@ if __name__ == '__main__':
         image_ext=".jpg"
     )
 
-    low_resource_task_pool_size = 60
-    med_resource_task_pool_size = 25
-    high_resource_task_pool_size = 10
+    low_resource_task_pool_size = 20
+    med_resource_task_pool_size = 10
+    high_resource_task_pool_size = 5
+    gpu_resource_task_pool_size = 1
 
     caption_normalizer = tasks.basic.CaptionNormalizer()
     caption_filter = tasks.basic.CaptionFilter()
@@ -31,6 +32,10 @@ if __name__ == '__main__':
 
     image_pipeline.add_task(blur_filter, max_workers=med_resource_task_pool_size)
     image_pipeline.add_task(entropy_filter, max_workers=high_resource_task_pool_size)
+
+    chad_filter = tasks.openclip.CHADScoreFilter(7.25)
+
+    image_pipeline.add_task(chad_filter, max_workers=gpu_resource_task_pool_size)
 
     image_pipeline.start()
 
