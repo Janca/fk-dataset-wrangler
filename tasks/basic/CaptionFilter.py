@@ -52,7 +52,7 @@ class CaptionFilter(_FkReportableTask):
 
         def tags_report(description: str, tags: list[str]) -> tuple[str, any]:
             tags_text = ", ".join(tags).strip()
-            wrapped_text = textwrap.fill(tags_text, 42)
+            wrapped_text = textwrap.fill(tags_text, 42, subsequent_indent="    ")
             return description, wrapped_text
 
         if self.required_tags:

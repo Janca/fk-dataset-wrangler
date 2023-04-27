@@ -1,4 +1,5 @@
 import textwrap
+from typing import Optional as _Optional
 
 from tasks import FkImage as _FkImage, FkReportableTask as _FkReportableTask
 
@@ -17,12 +18,16 @@ class ImageFilter(_FkReportableTask):
         self.minimum_dimensions = minimum_dimensions
         self.maximum_dimensions = maximum_dimensions
         self.modes = modes
+        self._invalid_modes = []
 
     def process(self, image: _FkImage) -> bool:
         width, height = image.image.size
         mode = image.image.mode
 
         if mode not in self.modes:
+            if mode not in self._invalid_modes:
+                self._invalid_modes.append(mode)
+
             return False
 
         if self.minimum_dimensions:
@@ -38,7 +43,7 @@ class ImageFilter(_FkReportableTask):
         return True
 
     def report(self) -> list[tuple[str, any]]:
-        report_items: list[tuple[str, any]] = []
+        report_items: list[_Optional[tuple[str, any]]] = []
 
         if self.modes:
             tags_text = ", ".join(self.modes).strip()
@@ -52,5 +57,9 @@ class ImageFilter(_FkReportableTask):
         if self.maximum_dimensions:
             max_width, max_height = self.maximum_dimensions
             report_items.append(("Maximum dimensions", f"{max_width}x{max_height}px"))
+
+        if len(self._invalid_modes) > 0:
+            report_items.append(None)
+            report_items.append(("Discarded modes", ", ".join(self._invalid_modes)))
 
         return report_items

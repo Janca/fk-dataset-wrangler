@@ -303,8 +303,9 @@ class FkPipeline:
 
         images_per_second = round(self._processed_image_count / runtime_seconds, 3)
         print(f"Images processed / second: {images_per_second}")
-        print(f"Completed in: {runtime_formatted}")
+        print()
 
+        print(f"Completed in: {runtime_formatted}")
         print()
 
     def shutdown(self):
