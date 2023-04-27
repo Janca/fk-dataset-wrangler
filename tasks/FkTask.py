@@ -143,7 +143,7 @@ class FkImage:
         return _os.path.splitext(self.basename)[0]
 
     def save(self, output_dirpath: str, image_ext: str, caption_text_ext: str):
-        filename_hash = _hashlib.sha256(self.basename.encode("utf-8")).hexdigest()
+        filename_hash = _hashlib.sha256(self.filepath.encode("utf-8")).hexdigest()
 
         save_image_filepath = _os.path.join(
             output_dirpath,
