@@ -147,8 +147,6 @@ class _FkTaskContextFactory:
             except _queue.Empty:
                 continue
 
-        print("ContextFactory queue complete...")
-
 
 class FkPipeline:
     def __init__(
@@ -215,7 +213,7 @@ class FkPipeline:
             # noinspection PyProtectedMember
             self._executors[i]._next_executor = self._executors[i + 1]
 
-        print("Tasks:", tasks_len)
+        # print("Tasks:", tasks_len)
         self._entry_executor = self._executors[0]
 
         self._context_factory = _FkTaskContextFactory(self)
@@ -241,6 +239,7 @@ class FkPipeline:
         self._start_time = _time.time()
 
         print("Scanning directory:", self.input_dirpath)
+        print()
 
         try:
             scan_dirpath(self.input_dirpath)
