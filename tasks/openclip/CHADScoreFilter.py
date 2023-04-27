@@ -52,7 +52,7 @@ class CHADScoreFilter(_FkReportableTask):
 
         self._chad_scores = []
 
-        vit_model_name = "ViT-L/14"
+        vit_model_name = "ViT-L-14"
         if not _os.path.exists(f"models/{vit_model_name}.pt"):
             print("Downloading ViT-L/14")
 

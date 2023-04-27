@@ -18,8 +18,8 @@ class CaptionFilter(_FkReportableTask):
     def process(self, image: _FkImage) -> bool:
         caption_text = image.caption_text
 
-        if not caption_text and self.require_caption_text:
-            return False
+        if not caption_text:
+            return not self.require_caption_text
 
         if self.required_tags:
             required_tag_found = False
