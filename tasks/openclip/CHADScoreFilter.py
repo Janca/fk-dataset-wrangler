@@ -97,6 +97,6 @@ class CHADScoreFilter(_FkReportableTask):
         return [
             ("Filter Threshold", self.score_threshold),
             None,
-            ("Average CHAD Score", _numpy.mean(self._chad_scores)),
-            ("90th Percentile", _numpy.percentile(self._chad_scores, 90))
+            ("Average CHAD Score", utils.safe_fn(lambda: _numpy.mean(self._chad_scores), -1)),
+            ("90th Percentile", utils.safe_fn(lambda: _numpy.percentile(self._chad_scores, 90), -1))
         ]

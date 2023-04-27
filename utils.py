@@ -27,11 +27,11 @@ def format_timestamp(seconds):
     return "%02d:%02d:%02d" % (hours, minutes % 60, seconds % 60)
 
 
-def safe_fn(fn: _Callable) -> any:
+def safe_fn(fn: _Callable, default_value: any = None) -> any:
     try:
         return fn()
     except:
-        return None
+        return default_value
 
 
 def resize_image_aspect(image: _PillowImage, max_size: int, copy: bool = True) -> _PillowImage:

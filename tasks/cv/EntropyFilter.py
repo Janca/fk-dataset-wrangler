@@ -1,6 +1,7 @@
 import cv2 as _cv2
 import numpy as _numpy
 
+import utils
 from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage
 
 
@@ -29,6 +30,6 @@ class EntropyFilter(_FkReportableTask):
         return [
             ("Filter Threshold", self._entropy_threshold),
             None,
-            ("Average Entropy", _numpy.mean(self._entropy_scores)),
-            ("90th Percentile", _numpy.percentile(self._entropy_scores, 90))
+            ("Average Entropy", utils.safe_fn(lambda: _numpy.mean(self._entropy_scores), -1)),
+            ("90th Percentile", utils.safe_fn(lambda: _numpy.percentile(self._entropy_scores, 90), -1))
         ]

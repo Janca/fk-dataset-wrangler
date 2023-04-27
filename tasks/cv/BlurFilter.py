@@ -1,6 +1,7 @@
 import cv2 as _cv2
 import numpy as _numpy
 
+import utils
 from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage
 
 
@@ -21,6 +22,6 @@ class BlurFilter(_FkReportableTask):
         return [
             ("Filter Threshold", self._blur_threshold),
             None,
-            ("Average Blur", _numpy.mean(self._blur_scores)),
-            ("90th Percentile", _numpy.percentile(self._blur_scores, 90))
+            ("Average Blur", utils.safe_fn(lambda: _numpy.mean(self._blur_scores), -1)),
+            ("90th Percentile", utils.safe_fn(lambda: _numpy.percentile(self._blur_scores, 90), -1))
         ]
