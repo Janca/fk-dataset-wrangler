@@ -1,3 +1,4 @@
+import argparse as _argparse
 import os as _os
 
 import clip as _clip
@@ -30,20 +31,27 @@ class _AestheticPredictor(_torch_nn.Module):
 
 class CHADScoreFilter(_FkReportableTask):
 
-    def __init__(self, score_threshold: float):
+    def __init__(self, score_threshold: float = -1):
+        self._clip_preprocess = None
+        self._clip_model = None
+        self._chad_scores = None
+        self._chad_predictor = None
+        self._pt_state = None
+        self._device = None
         self.score_threshold = score_threshold
 
-        self.scoring_model_path = "models/chadscorer.pth"
+    def initialize(self):
+        scoring_model_path = "models/chadscorer.pth"
 
-        if not _os.path.exists(self.scoring_model_path):
-            print("Downloading scoring model:", self.scoring_model_path)
+        if not _os.path.exists(scoring_model_path):
+            print("Downloading scoring model:", scoring_model_path)
             utils.download_file(
                 "https://github.com/grexzen/SD-Chad/blob/main/chadscorer.pth?raw=true",
-                self.scoring_model_path
+                scoring_model_path
             )
 
         self._device = "cuda" if _torch.cuda.is_available() else "cpu"
-        self._pt_state = _torch.load(self.scoring_model_path, map_location=_torch.device("cpu"))
+        self._pt_state = _torch.load(scoring_model_path, map_location=_torch.device("cpu"))
 
         self._chad_predictor = _AestheticPredictor(768)
         self._chad_predictor.load_state_dict(self._pt_state)
@@ -62,6 +70,19 @@ class CHADScoreFilter(_FkReportableTask):
 
         self._clip_model = clip_model
         self._clip_preprocess = clip_preprocess
+
+    def register_args(self, arg_parser: _argparse.ArgumentParser):
+        arg_parser.add_argument(
+            "--chad-score",
+            default=-1,
+            type=float,
+            help="discard image if image does not meet aesthetic score "
+                 "(0 - 8; 0 = least aesthetic; 8 = most aesthetic; default: -1 [disabled])"
+        )
+
+    def parse_args(self, args: _argparse.Namespace) -> bool:
+        self.score_threshold = args.chad_score
+        return self.score_threshold >= 0
 
     def process(self, image: FkImage) -> bool:
         chad_image = self._clip_preprocess(image.image).unsqueeze(0).to(self._device)
@@ -92,6 +113,10 @@ class CHADScoreFilter(_FkReportableTask):
 
         self._chad_scores.append(score)
         return score >= self.score_threshold
+
+    @property
+    def priority(self) -> int:
+        return 10_000
 
     def report(self) -> list[tuple[str, any]]:
         return [

@@ -1,3 +1,4 @@
+import argparse as _argparse
 import re as _re
 
 from tasks import FkTask as _FkTask, FkImage
@@ -26,6 +27,19 @@ class CaptionNormalizer(_FkTask):
         "-___": "\\]",  # reverse escaped brackets ]
     }
 
+    @classmethod
+    def register_args(cls, arg_parser: _argparse.ArgumentParser):
+        arg_parser.add_argument(
+            "--normalize-captions",
+            action="store_true",
+            default=False,
+            required=False,
+            help="normalize captions by removing weights, punctuation and extraneous symbols; (default: False)"
+        )
+
+    def parse_args(self, args: _argparse.Namespace):
+        return args.normalize_captions
+
     def process(self, image: FkImage) -> bool:
         caption_text = image.caption_text
 
@@ -48,3 +62,9 @@ class CaptionNormalizer(_FkTask):
                 image.caption_text = caption_text
 
         return True
+
+    @property
+    def priority(self) -> int:
+        return 200
+
+

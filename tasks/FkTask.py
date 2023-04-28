@@ -1,4 +1,6 @@
 import abc as _abc
+import argparse as _argparse
+import enum as _enum
 import hashlib as _hashlib
 import os as _os
 from typing import Optional as _Optional
@@ -100,6 +102,7 @@ class FkImage:
             return None
 
         if self._cv2_grayscale_image is None:
+            # noinspection PyUnresolvedReferences
             self._cv2_grayscale_image = _cv2.cvtColor(self.cv2_image, _cv2.COLOR_BGR2GRAY)
 
         return self._cv2_grayscale_image
@@ -186,7 +189,30 @@ class FkImage:
         del self._image
 
 
+class FkTaskIntensiveness(_enum.Enum):
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    VERY_HIGH = 4
+    EXTREME = 5
+
+
 class FkTask(_abc.ABC):
+
+    def initialize(self):
+        """
+        Anything that requires additional things to operate the task
+        should go here, like downloading or loading additional models
+        :return:
+        """
+        pass
+
+    def register_args(self, arg_parser: _argparse.ArgumentParser):
+        pass
+
+    def parse_args(self, args: _argparse.Namespace) -> bool:
+        return False
+
     @_abc.abstractmethod
     def process(self, image: FkImage) -> bool:
         pass
@@ -194,6 +220,15 @@ class FkTask(_abc.ABC):
     @property
     def name(self) -> str:
         return self.__class__.__name__
+
+    @property
+    def intensiveness(self) -> FkTaskIntensiveness:
+        return FkTaskIntensiveness.MEDIUM
+
+    @property
+    @_abc.abstractmethod
+    def priority(self) -> int:
+        pass
 
 
 class FkReportableTask(FkTask, _abc.ABC):

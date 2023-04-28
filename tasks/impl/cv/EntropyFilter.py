@@ -1,3 +1,5 @@
+import argparse as _argparse
+
 import cv2 as _cv2
 import numpy as _numpy
 
@@ -7,9 +9,21 @@ from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage
 
 class EntropyFilter(_FkReportableTask):
 
-    def __init__(self, entropy_threshold: float):
+    def __init__(self, entropy_threshold: float = -1):
         self._entropy_threshold = entropy_threshold
         self._entropy_scores = []
+
+    def register_args(self, arg_parser: _argparse.ArgumentParser):
+        arg_parser.add_argument(
+            "--entropy-threshold",
+            default=-1,
+            type=float,
+            help="discard image if image does not meet entropy threshold "
+                 "(0 - 8; 0 = least entropic; 8 = most entropic; default: -1 [disabled])"
+        )
+
+    def parse_args(self, args: _argparse.Namespace) -> bool:
+        return super().parse_args(args)
 
     # noinspection PyUnresolvedReferences
     def process(self, image: _FkImage) -> bool:
@@ -25,6 +39,10 @@ class EntropyFilter(_FkReportableTask):
 
         self._entropy_scores.append(entropy)
         return entropy >= self._entropy_threshold
+
+    @property
+    def priority(self) -> int:
+        return 700
 
     def report(self) -> list[tuple[str, any]]:
         return [

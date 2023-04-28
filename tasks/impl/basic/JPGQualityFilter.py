@@ -1,3 +1,4 @@
+import argparse as _argparse
 import traceback
 
 import numpy as _numpy
@@ -9,10 +10,6 @@ from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage
 
 
 class JPGQualityFilter(_FkReportableTask):
-    """
-    Nifty idea, but doesn't seem to work in the pipeline, idk why?!?
-    """
-
     _NUM_QUANT_TBLS = 4
     _DCTSIZE2 = 64
 
@@ -72,16 +69,29 @@ class JPGQualityFilter(_FkReportableTask):
         64, 0
     ]
 
-    def __init__(self, jpg_quality_threshold: int = 75):
+    def __init__(self, jpg_quality_threshold: int = -1):
         self._jpg_quality_threshold = jpg_quality_threshold
         self._qualities = []
+
+    def register_args(self, arg_parser: _argparse.ArgumentParser):
+        arg_parser.add_argument(
+            "--jpeg-quality",
+            default=-1,
+            type=int,
+            help="discard images if they are not at least the provided quality level "
+                 "(0 - 100; default: -1 [disabled])"
+        )
+
+    def parse_args(self, args: _argparse.Namespace) -> bool:
+        self._jpg_quality_threshold = args.jpeg_quality
+        return self._jpg_quality_threshold >= 0
 
     def process(self, image: _FkImage) -> bool:
         if isinstance(image.image, _PillowJPG):
             # apparently image extensions don't mean shit, PIL will
             # open w.e even named wrong, so check instance type instead
 
-            jpeg_quality = JPGQualityFilter.get_jpg_quality(image.image)
+            jpeg_quality = JPGQualityFilter._get_jpg_quality(image.image)
             if jpeg_quality >= 0:
                 self._qualities.append(jpeg_quality)
                 return jpeg_quality >= self._jpg_quality_threshold
@@ -99,8 +109,12 @@ class JPGQualityFilter(_FkReportableTask):
             ("90th Percentile", utils.safe_fn(lambda: _numpy.percentile(self._qualities, 90), -1))
         ]
 
+    @property
+    def priority(self) -> int:
+        return 300
+
     @classmethod
-    def get_jpg_quality(cls, image: _PillowImage) -> int:
+    def _get_jpg_quality(cls, image: _PillowImage) -> int:
         """
         Stolen from gist
         https://gist.github.com/eddy-geek/c0f01dc5401dc50a49a0a821cdc9b3e8#file-jpg_quality_pil_magick-py
@@ -117,11 +131,11 @@ class JPGQualityFilter(_FkReportableTask):
 
         qsum = 0
 
+        # noinspection PyBroadException
         try:
             # noinspection PyUnresolvedReferences
             qdict = image.quantization
-        except Exception as e:
-            traceback.print_exception(e)
+        except Exception:
             return -2
 
         for i, qtable in qdict.items():

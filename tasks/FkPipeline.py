@@ -1,4 +1,5 @@
 import gc
+import math
 import os as _os
 import queue as _queue
 import time as _time
@@ -277,6 +278,10 @@ class FkPipeline:
 
                     else:
                         description, value = report_item
+                        if isinstance(value, (int, float)):
+                            if math.isnan(value):
+                                value = -1
+
                         if isinstance(value, float):
                             value = round(value, 3)
 

@@ -1,7 +1,10 @@
+import argparse
+import os
 import sys
 import time
 
 import tasks
+import utils
 
 _TASK_POOL_SIZES = {
     "low": (10, 5, 1, 1),
@@ -12,49 +15,74 @@ _TASK_POOL_SIZES = {
 
 if __name__ == '__main__':
 
-    input_folder = "./input"
-    output_folder = "./output"
+    arg_parser = argparse.ArgumentParser()
+
+    arg_parser.add_argument(
+        "src",
+        help="dataset input folder"
+    )
+
+    arg_parser.add_argument(
+        "dst",
+        help="dataset output folder"
+    )
+
+    arg_parser.add_argument(
+        "--output-image-ext",
+        default=".png",
+        help="extension to use when saving images to the dataset output folder "
+             "(default: .png)"
+    )
+
+    arg_parser.add_argument(
+        "--output-caption-text-ext",
+        default=".txt",
+        help="extension to use when saving image caption text to the dataset output folder "
+             "(default: .txt)"
+    )
+
+    working_directory = os.path.dirname(os.path.realpath(__file__))
+    tasks_directory = os.path.join(working_directory, "tasks", "impl")
+    _, tasks_classes = utils.load_modules_and_classes_from_directory(tasks_directory)
+
+    tasks_instances = [task_class() for task_class in tasks_classes if not task_class.__name__.startswith("_")]
+    for task_inst in tasks_instances:
+        task_group = arg_parser.add_argument_group(f"{task_inst.__class__.__name__} options")
+        task_inst.register_args(task_group)
+
+    args = arg_parser.parse_args(args=(sys.argv[1:] or ['--help']))
+
+    input_dirpath = args.src
+    output_dirpath = args.dst
+    image_ext = args.output_image_ext
+
+    runtime_tasks = []
+    for task_inst in tasks_instances:
+        if task_inst.parse_args(args):
+            runtime_tasks.append(task_inst)
+
+    runtime_tasks = sorted(runtime_tasks, key=lambda task: task.priority)
 
     image_pipeline = tasks.FkPipeline(
-        input_folder,
-        output_folder,
-        image_ext=".png"
+        input_dirpath,
+        output_dirpath,
+        image_ext=image_ext
     )
 
-    task_pool_sizes = _TASK_POOL_SIZES["make-my-pc-hurt"]
+    print("Setting up pipeline...")
+    print()
 
-    low_resource_task_pool_size, med_resource_task_pool_size, \
-        high_resource_task_pool_size, gpu_resource_task_pool_size = task_pool_sizes
+    for runtime_task in runtime_tasks:
+        print(f"Adding task: {runtime_task.__class__.__name__}")
+        image_pipeline.add_task(runtime_task)
 
-    caption_normalizer = tasks.basic.CaptionNormalizer()
-    caption_filter = tasks.basic.CaptionFilter(
-        require_caption_text=False
-    )
+    print()
 
-    image_pipeline.add_task(caption_normalizer, max_workers=low_resource_task_pool_size)
-    image_pipeline.add_task(caption_filter, max_workers=low_resource_task_pool_size)
-
-    jpg_quality_filter = tasks.basic.JPGQualityFilter(75)
-    image_filter = tasks.basic.ImageFilter(minimum_dimensions=(512, 512))
-    image_scaler = tasks.basic.ImageScaler(896)
-
-    image_pipeline.add_task(jpg_quality_filter, max_workers=low_resource_task_pool_size)
-    image_pipeline.add_task(image_filter, max_workers=low_resource_task_pool_size)
-    image_pipeline.add_task(image_scaler, max_workers=low_resource_task_pool_size)
-
-    blur_filter = tasks.cv.BlurFilter(475)
-    entropy_filter = tasks.cv.EntropyFilter(4.75)
-
-    image_pipeline.add_task(blur_filter, max_workers=med_resource_task_pool_size)
-    image_pipeline.add_task(entropy_filter, max_workers=high_resource_task_pool_size)
-
-    chad_filter = tasks.openclip.CHADScoreFilter(4.75)
-
-    image_pipeline.add_task(chad_filter, max_workers=gpu_resource_task_pool_size)
-
+    print("Starting pipeline...")
     image_pipeline.start()
 
     try:
+        print()
         print("Waiting for workers to complete...")
         while image_pipeline.active:
             time.sleep(1)
