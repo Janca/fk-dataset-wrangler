@@ -84,42 +84,39 @@ def download_file(url: str, dst: str) -> bool:
 
 
 def _load_modules_from_directory(directory, parent_package=None):
+    """
+    Method provided by Google Bard <3
+    :param directory:
+    :param parent_package:
+    :return:
+    """
     modules = []
 
-    # Get the absolute path of the directory
     directory_path = _os.path.abspath(directory)
-
-    # Add the directory to the system path, so Python can find it
     if directory_path not in _sys.path:
         _sys.path.append(directory_path)
 
-    # Iterate over the files and directories in the current directory
     for entry in _os.listdir(directory):
         entry_path = _os.path.join(directory, entry)
 
         if _os.path.isfile(entry_path) and entry.endswith(".py") and not entry.startswith("__"):
-            # Remove the .py extension to get the module name
             module_name = entry[:-3]
 
-            # If there's a parent package, include it in the module name
             if parent_package:
                 full_module_name = f"{parent_package}.{module_name}"
             else:
                 full_module_name = module_name
 
-            # Import the module and store it in the list
             module = _importlib.import_module(full_module_name)
             modules.append(module)
 
         elif _os.path.isdir(entry_path) and _os.path.isfile(_os.path.join(entry_path, "__init__.py")):
-            # If entry is a package, load its modules recursively
             package_name = entry
             if parent_package:
                 full_package_name = f"{parent_package}.{package_name}"
             else:
                 full_package_name = package_name
 
-            # Recursive call to load modules from the subpackage
             sub_modules = _load_modules_from_directory(entry_path, full_package_name)
             modules.extend(sub_modules)
 
@@ -127,6 +124,11 @@ def _load_modules_from_directory(directory, parent_package=None):
 
 
 def get_classes_from_module(module):
+    """
+    Method provided by Google Bard
+    :param module:
+    :return:
+    """
     classes = []
 
     for name, obj in _inspect.getmembers(module):
@@ -137,6 +139,12 @@ def get_classes_from_module(module):
 
 
 def load_modules_and_classes_from_directory(directory, parent_package=None):
+    """
+    Method provided by Google Bard
+    :param directory:
+    :param parent_package:
+    :return:
+    """
     modules = _load_modules_from_directory(directory, parent_package)
     classes = []
 
