@@ -11,36 +11,44 @@ _TASK_POOL_SIZES = {
 }
 
 if __name__ == '__main__':
+
+    input_folder = "./input"
+    output_folder = "./output"
+
     image_pipeline = tasks.FkPipeline(
-        "F:\\StableDiffusion\\2023_02_24\\images",
-        "F:\\StableDiffusion\\2023_02_24\\output",
-        image_ext=".jpg"
+        input_folder,
+        output_folder,
+        image_ext=".png"
     )
 
-    task_pool_sizes = _TASK_POOL_SIZES["low"]
+    task_pool_sizes = _TASK_POOL_SIZES["make-my-pc-hurt"]
 
     low_resource_task_pool_size, med_resource_task_pool_size, \
         high_resource_task_pool_size, gpu_resource_task_pool_size = task_pool_sizes
 
     caption_normalizer = tasks.basic.CaptionNormalizer()
-    caption_filter = tasks.basic.CaptionFilter()
+    caption_filter = tasks.basic.CaptionFilter(
+        require_caption_text=False
+    )
 
     image_pipeline.add_task(caption_normalizer, max_workers=low_resource_task_pool_size)
     image_pipeline.add_task(caption_filter, max_workers=low_resource_task_pool_size)
 
-    image_filter = tasks.basic.ImageFilter(minimum_dimensions=(320, 320))
-    image_scaler = tasks.basic.ImageScaler(768)
+    jpg_quality_filter = tasks.basic.JPGQualityFilter(75)
+    image_filter = tasks.basic.ImageFilter(minimum_dimensions=(512, 512))
+    image_scaler = tasks.basic.ImageScaler(896)
 
+    image_pipeline.add_task(jpg_quality_filter, max_workers=low_resource_task_pool_size)
     image_pipeline.add_task(image_filter, max_workers=low_resource_task_pool_size)
     image_pipeline.add_task(image_scaler, max_workers=low_resource_task_pool_size)
 
-    blur_filter = tasks.cv.BlurFilter(1200)
-    entropy_filter = tasks.cv.EntropyFilter(7.5)
+    blur_filter = tasks.cv.BlurFilter(475)
+    entropy_filter = tasks.cv.EntropyFilter(4.75)
 
     image_pipeline.add_task(blur_filter, max_workers=med_resource_task_pool_size)
     image_pipeline.add_task(entropy_filter, max_workers=high_resource_task_pool_size)
 
-    chad_filter = tasks.openclip.CHADScoreFilter(7.25)
+    chad_filter = tasks.openclip.CHADScoreFilter(4.75)
 
     image_pipeline.add_task(chad_filter, max_workers=gpu_resource_task_pool_size)
 
