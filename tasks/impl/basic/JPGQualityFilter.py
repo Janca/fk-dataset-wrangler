@@ -1,12 +1,12 @@
 import argparse as _argparse
-import traceback
 
 import numpy as _numpy
 from PIL.Image import Image as _PillowImage
 from PIL.JpegImagePlugin import JpegImageFile as _PillowJPG
 
 import utils
-from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage
+from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage, \
+    FkTaskIntensiveness as _FkTaskIntensiveness
 
 
 class JPGQualityFilter(_FkReportableTask):
@@ -112,6 +112,10 @@ class JPGQualityFilter(_FkReportableTask):
     @property
     def priority(self) -> int:
         return 300
+
+    @property
+    def intensiveness(self) -> _FkTaskIntensiveness:
+        return _FkTaskIntensiveness.MEDIUM
 
     @classmethod
     def _get_jpg_quality(cls, image: _PillowImage) -> int:

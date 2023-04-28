@@ -7,7 +7,8 @@ import torch as _torch
 import torch.nn as _torch_nn
 
 import utils
-from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage, FkTaskIntensiveness as _FkTaskIntensiveness
+from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage, \
+    FkTaskIntensiveness as _FkTaskIntensiveness
 
 
 class _AestheticPredictor(_torch_nn.Module):

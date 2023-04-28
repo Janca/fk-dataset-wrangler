@@ -1,7 +1,7 @@
 import argparse as _argparse
 import re as _re
 
-from tasks import FkTask as _FkTask, FkImage
+from tasks import FkTask as _FkTask, FkImage as _FkImage, FkTaskIntensiveness as _FkTaskIntensiveness
 
 
 class CaptionNormalizer(_FkTask):
@@ -40,7 +40,7 @@ class CaptionNormalizer(_FkTask):
     def parse_args(self, args: _argparse.Namespace):
         return args.normalize_captions
 
-    def process(self, image: FkImage) -> bool:
+    def process(self, image: _FkImage) -> bool:
         caption_text = image.caption_text
 
         if caption_text:
@@ -67,4 +67,6 @@ class CaptionNormalizer(_FkTask):
     def priority(self) -> int:
         return 200
 
-
+    @property
+    def intensiveness(self) -> _FkTaskIntensiveness:
+        return _FkTaskIntensiveness.LOW

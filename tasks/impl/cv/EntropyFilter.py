@@ -4,7 +4,8 @@ import cv2 as _cv2
 import numpy as _numpy
 
 import utils
-from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage
+from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage, \
+    FkTaskIntensiveness as _FkTaskIntensiveness
 
 
 class EntropyFilter(_FkReportableTask):
@@ -43,6 +44,10 @@ class EntropyFilter(_FkReportableTask):
     @property
     def priority(self) -> int:
         return 700
+
+    @property
+    def intensiveness(self) -> _FkTaskIntensiveness:
+        return _FkTaskIntensiveness.HIGH
 
     def report(self) -> list[tuple[str, any]]:
         return [

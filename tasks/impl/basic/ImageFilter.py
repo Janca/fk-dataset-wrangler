@@ -2,7 +2,8 @@ import argparse as _argparse
 import textwrap as _textwrap
 from typing import Optional as _Optional
 
-from tasks import FkImage as _FkImage, FkReportableTask as _FkReportableTask
+from tasks import FkImage as _FkImage, FkReportableTask as _FkReportableTask, \
+    FkTaskIntensiveness as _FkTaskIntensiveness
 
 
 class ImageFilter(_FkReportableTask):
@@ -113,3 +114,7 @@ class ImageFilter(_FkReportableTask):
     @property
     def priority(self) -> int:
         return 400
+
+    @property
+    def intensiveness(self) -> _FkTaskIntensiveness:
+        return _FkTaskIntensiveness.LOW

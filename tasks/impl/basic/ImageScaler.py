@@ -1,7 +1,7 @@
 import argparse as _argparse
 
 import utils
-from tasks import FkTask as _FkTask, FkImage as _FkImage
+from tasks import FkTask as _FkTask, FkImage as _FkImage, FkTaskIntensiveness as _FkTaskIntensiveness
 
 
 class ImageScaler(_FkTask):
@@ -28,3 +28,7 @@ class ImageScaler(_FkTask):
     @property
     def priority(self) -> int:
         return 500
+
+    @property
+    def intensiveness(self) -> _FkTaskIntensiveness:
+        return _FkTaskIntensiveness.LOW
