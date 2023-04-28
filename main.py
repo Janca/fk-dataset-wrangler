@@ -80,8 +80,7 @@ if __name__ == '__main__':
         task_group = arg_parser.add_argument_group(f"{task_inst.__class__.__name__} options")
         task_inst.register_args(task_group)
 
-    # args = arg_parser.parse_args(args=(sys.argv[1:] or ['--help']))
-    args = arg_parser.parse_args(args=["--require-caption-text", "--resource-usage", "high", "./input", "./output"])
+    args = arg_parser.parse_args(args=(sys.argv[1:] or ['--help']))
 
     input_dirpath = args.src
     output_dirpath = args.dst
