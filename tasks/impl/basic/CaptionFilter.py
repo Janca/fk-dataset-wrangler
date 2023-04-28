@@ -1,7 +1,7 @@
 import argparse as _argparse
 import textwrap as _textwrap
 
-from tasks import FkImage as _FkImage, FkReportableTask as _FkReportableTask
+from tasks import FkImage as _FkImage, FkReportableTask as _FkReportableTask, FkTaskIntensiveness
 
 
 class CaptionFilter(_FkReportableTask):
@@ -14,7 +14,7 @@ class CaptionFilter(_FkReportableTask):
     ):
         self.require_caption_text = require_caption_text
         self.required_tags = required_tags
-        self.blacklist_tags = blacklist_tags
+        self.blacklisted_tags = blacklist_tags
 
     @classmethod
     def register_args(cls, arg_parser: _argparse.ArgumentParser):
@@ -23,7 +23,7 @@ class CaptionFilter(_FkReportableTask):
             action="store_true",
             required=False,
             default=False,
-            help="require caption text file to exist and be non-empty (default: True)"
+            help="require caption text file to exist and be non-empty (default: False)"
         )
 
         arg_parser.add_argument(
@@ -86,7 +86,7 @@ class CaptionFilter(_FkReportableTask):
     def report(self) -> list[tuple[str, any]]:
         report_items: list[tuple[str, any]] = []
         if self.require_caption_text:
-            report_items.append(("Caption text required", self.required_tags))
+            report_items.append(("Caption text required", self.require_caption_text))
 
         def tags_report(description: str, tags: list[str]) -> tuple[str, any]:
             tags_text = ", ".join(tags).strip()
@@ -106,3 +106,7 @@ class CaptionFilter(_FkReportableTask):
     @property
     def priority(self) -> int:
         return 100
+
+    @property
+    def intensiveness(self) -> FkTaskIntensiveness:
+        return FkTaskIntensiveness.LOW

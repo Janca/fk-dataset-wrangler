@@ -7,7 +7,7 @@ import torch as _torch
 import torch.nn as _torch_nn
 
 import utils
-from tasks import FkReportableTask as _FkReportableTask, FkImage
+from tasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage, FkTaskIntensiveness as _FkTaskIntensiveness
 
 
 class _AestheticPredictor(_torch_nn.Module):
@@ -84,7 +84,7 @@ class CHADScoreFilter(_FkReportableTask):
         self.score_threshold = args.chad_score
         return self.score_threshold >= 0
 
-    def process(self, image: FkImage) -> bool:
+    def process(self, image: _FkImage) -> bool:
         chad_image = self._clip_preprocess(image.image).unsqueeze(0).to(self._device)
 
         with _torch.inference_mode():
@@ -117,6 +117,10 @@ class CHADScoreFilter(_FkReportableTask):
     @property
     def priority(self) -> int:
         return 10_000
+
+    @property
+    def intensiveness(self) -> _FkTaskIntensiveness:
+        return _FkTaskIntensiveness.GPU
 
     def report(self) -> list[tuple[str, any]]:
         return [

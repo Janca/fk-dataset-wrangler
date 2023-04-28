@@ -194,7 +194,7 @@ class FkTaskIntensiveness(_enum.Enum):
     MEDIUM = 2
     HIGH = 3
     VERY_HIGH = 4
-    EXTREME = 5
+    GPU = 5
 
 
 class FkTask(_abc.ABC):

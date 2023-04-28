@@ -239,12 +239,10 @@ class FkPipeline:
 
         self._start_time = _time.time()
 
-        print("Scanning directory:", self.input_dirpath)
-        print()
 
         try:
+            print("Scanning directory:", self.input_dirpath)
             scan_dirpath(self.input_dirpath)
-            print("Scan complete...")
         except KeyboardInterrupt as kbi:
             self.shutdown()
             raise kbi

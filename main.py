@@ -6,14 +6,37 @@ import time
 import tasks
 import utils
 
-_TASK_POOL_SIZES = {
-    "low": (10, 5, 1, 1),
-    "med": (20, 10, 5, 1),
-    "high": (30, 15, 10, 1),
-    "make-my-pc-hurt": (60, 40, 20, 2)
-}
-
 if __name__ == '__main__':
+    resource_pools = {
+        "low": {
+            tasks.FkTaskIntensiveness.LOW: 5,
+            tasks.FkTaskIntensiveness.MEDIUM: 5,
+            tasks.FkTaskIntensiveness.HIGH: 2,
+            tasks.FkTaskIntensiveness.VERY_HIGH: 1,
+            tasks.FkTaskIntensiveness.GPU: 1
+        },
+        "med": {
+            tasks.FkTaskIntensiveness.LOW: 10,
+            tasks.FkTaskIntensiveness.MEDIUM: 10,
+            tasks.FkTaskIntensiveness.HIGH: 5,
+            tasks.FkTaskIntensiveness.VERY_HIGH: 2,
+            tasks.FkTaskIntensiveness.GPU: 1
+        },
+        "high": {
+            tasks.FkTaskIntensiveness.LOW: 30,
+            tasks.FkTaskIntensiveness.MEDIUM: 20,
+            tasks.FkTaskIntensiveness.HIGH: 10,
+            tasks.FkTaskIntensiveness.VERY_HIGH: 5,
+            tasks.FkTaskIntensiveness.GPU: 1
+        },
+        "make-my-pc-hurt": {
+            tasks.FkTaskIntensiveness.LOW: 40,
+            tasks.FkTaskIntensiveness.MEDIUM: 30,
+            tasks.FkTaskIntensiveness.HIGH: 20,
+            tasks.FkTaskIntensiveness.VERY_HIGH: 5,
+            tasks.FkTaskIntensiveness.GPU: 2
+        }
+    }
 
     arg_parser = argparse.ArgumentParser()
 
@@ -41,6 +64,13 @@ if __name__ == '__main__':
              "(default: .txt)"
     )
 
+    arg_parser.add_argument(
+        "--resource-usage",
+        default="low",
+        choices=list(resource_pools.keys()),
+        help="configure pipeline to use more or less resources (default: low)"
+    )
+
     working_directory = os.path.dirname(os.path.realpath(__file__))
     tasks_directory = os.path.join(working_directory, "tasks", "impl")
     _, tasks_classes = utils.load_modules_and_classes_from_directory(tasks_directory)
@@ -50,11 +80,14 @@ if __name__ == '__main__':
         task_group = arg_parser.add_argument_group(f"{task_inst.__class__.__name__} options")
         task_inst.register_args(task_group)
 
-    args = arg_parser.parse_args(args=(sys.argv[1:] or ['--help']))
+    # args = arg_parser.parse_args(args=(sys.argv[1:] or ['--help']))
+    args = arg_parser.parse_args(args=["--require-caption-text", "--resource-usage", "high", "./input", "./output"])
 
     input_dirpath = args.src
     output_dirpath = args.dst
     image_ext = args.output_image_ext
+    resource_pool_selection = args.resource_usage or "low"
+    resource_pool = resource_pools[resource_pool_selection]
 
     runtime_tasks = []
     for task_inst in tasks_instances:
@@ -73,8 +106,13 @@ if __name__ == '__main__':
     print()
 
     for runtime_task in runtime_tasks:
-        print(f"Adding task: {runtime_task.__class__.__name__}")
-        image_pipeline.add_task(runtime_task)
+        print(f"Initializing task: {runtime_task.__class__.__name__}")
+        runtime_task.initialize()
+
+        intensiveness = runtime_task.intensiveness
+        max_workers = resource_pool[intensiveness]
+
+        image_pipeline.add_task(runtime_task, max_workers=max_workers)
 
     print()
 
@@ -88,9 +126,9 @@ if __name__ == '__main__':
             time.sleep(1)
 
     except KeyboardInterrupt:
-        print("Pipeline interrupted.")
+        print("Pipeline interrupted")
         image_pipeline.shutdown()
         sys.exit()
 
-    print("Shutting down pipeline...")
+    print("Pipeline complete")
     image_pipeline.shutdown()
