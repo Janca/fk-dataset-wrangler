@@ -24,7 +24,8 @@ class EntropyFilter(_FkReportableTask):
         )
 
     def parse_args(self, args: _argparse.Namespace) -> bool:
-        return super().parse_args(args)
+        self._entropy_threshold = args.entropy_threshold
+        return self._entropy_threshold > 0
 
     # noinspection PyUnresolvedReferences
     def process(self, image: _FkImage) -> bool:

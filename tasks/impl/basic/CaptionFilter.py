@@ -59,29 +59,23 @@ class CaptionFilter(_FkReportableTask):
         if not caption_text:
             return not self.require_caption_text
 
+        requires_tag = self.required_tags is not None and len(self.required_tags)
+        has_required_tag = False
         if self.required_tags:
-            required_tag_found = False
-
             for required_tag in self.required_tags:
                 if required_tag in caption_text:
-                    required_tag_found = True
+                    has_required_tag = True
                     break
 
-            if not required_tag_found:
+            if not has_required_tag:
                 return False
 
         if self.blacklisted_tags:
-            blacklist_tag_found = False
-
             for blacklist_tag in self.blacklisted_tags:
                 if blacklist_tag in caption_text:
-                    blacklist_tag_found = True
-                    break
+                    return False
 
-            if blacklist_tag_found:
-                return False
-
-        return True
+        return not requires_tag or has_required_tag
 
     def report(self) -> list[tuple[str, any]]:
         report_items: list[tuple[str, any]] = []
