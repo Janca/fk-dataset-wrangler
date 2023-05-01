@@ -71,7 +71,7 @@ class ImageFilter(_FkReportableTask):
         width, height = image.image.size
         mode = image.image.mode
 
-        if mode not in self.modes:
+        if self.modes and mode not in self.modes:
             if mode not in self._invalid_modes:
                 self._invalid_modes.append(mode)
 
