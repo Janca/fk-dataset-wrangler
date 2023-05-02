@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import sys
 import time
@@ -80,54 +81,99 @@ if __name__ == '__main__':
         task_group = arg_parser.add_argument_group(f"{task_inst.__class__.__name__} options")
         task_inst.register_args(task_group)
 
-    args = arg_parser.parse_args(args=(sys.argv[1:] or ['--help']))
+    test_args = None
+
+    args = arg_parser.parse_args(args=(test_args or sys.argv[1:] or ['--help']))
+
+    print("Pipeline arguments:")
+    print(json.dumps(vars(args), sort_keys=True, indent=2))
+    print()
 
     input_dirpath = args.src
     output_dirpath = args.dst
     image_ext = args.output_image_ext
     resource_pool_selection = args.resource_usage or "low"
     resource_pool = resource_pools[resource_pool_selection]
+    gpu_multipass = True
 
-    runtime_tasks = []
+    input_src = tasks.FkDirectorySource(input_dirpath, True)
+    output_dst = tasks.FkDirectoryDestination(output_dirpath)
+
+    runtime_tasks: list[tasks.FkTask] = []
     for task_inst in tasks_instances:
         if task_inst.parse_args(args):
             runtime_tasks.append(task_inst)
 
     runtime_tasks = sorted(runtime_tasks, key=lambda task: task.priority)
+    pipelines: list[tasks.FkPipeline] = []
 
-    image_pipeline = tasks.FkPipeline(
-        input_dirpath,
-        output_dirpath,
-        image_ext=image_ext
-    )
+    if gpu_multipass:
+        cpu_tasks = []
+        gpu_tasks = []
 
-    print("Setting up pipeline...")
-    print()
+        for task in runtime_tasks:
+            if task.intensiveness == tasks.FkTaskIntensiveness.GPU:
+                gpu_tasks.append(task)
 
-    for runtime_task in runtime_tasks:
-        print(f"Initializing task: {runtime_task.__class__.__name__}")
-        runtime_task.initialize()
+            else:
+                cpu_tasks.append(task)
 
-        intensiveness = runtime_task.intensiveness
-        max_workers = resource_pool[intensiveness]
+        buffer = tasks.FkBuffer()
+        cpu_pipeline = tasks.FkPipeline(input_src, buffer, image_ext)
+        for cpu_task in cpu_tasks:
+            cpu_pipeline.add_task(cpu_task)
 
-        image_pipeline.add_task(runtime_task, max_workers=max_workers)
+        pipelines.append(cpu_pipeline)
 
-    print()
+        next_buffer = buffer
+        for i, gpu_task in enumerate(gpu_tasks, start=1):
+            out_buffer = tasks.FkBuffer() if i < len(gpu_tasks) else output_dst
+            gpu_pipeline = tasks.FkPipeline(next_buffer, out_buffer, image_ext)
+            gpu_pipeline.add_task(gpu_task)
 
-    print("Starting pipeline...")
-    image_pipeline.start()
+            next_buffer = out_buffer
+            pipelines.append(gpu_pipeline)
 
-    try:
+        print(f"Completed multi-pass setup... {len(pipelines)} pipelines created...")
+
+    else:
+        pipeline = tasks.FkPipeline(input_src, output_dst, image_ext)
+        pipelines.append(pipeline)
+
+    for image_pipeline in pipelines:
+        print("Setting up pipeline...")
         print()
-        print("Waiting for workers to complete...")
-        while image_pipeline.active:
-            time.sleep(1)
 
-    except KeyboardInterrupt:
-        print("Pipeline interrupted")
+        for pipeline_task in image_pipeline.tasks:
+            print(f"Initializing task: {pipeline_task.__class__.__name__}")
+            pipeline_task.initialize()
+
+            intensiveness = pipeline_task.intensiveness
+            max_workers = resource_pool[intensiveness]
+
+            image_pipeline.add_task(pipeline_task, max_workers=max_workers)
+
+        print()
+
+        print("Starting pipeline...")
+        image_pipeline.start()
+
+        try:
+            print()
+            print("Waiting for workers to complete...")
+            while image_pipeline.active:
+                time.sleep(1)
+
+        except KeyboardInterrupt:
+            print("Pipeline interrupted...")
+            image_pipeline.shutdown()
+            image_pipeline.report()
+            sys.exit()
+
+        print("Pipeline complete...")
         image_pipeline.shutdown()
-        sys.exit()
+        image_pipeline.report()
 
-    print("Pipeline complete")
-    image_pipeline.shutdown()
+        print()
+        print("-" * 42)
+        print()

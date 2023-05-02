@@ -1,6 +1,5 @@
 import gc
 import math
-import os as _os
 import queue as _queue
 import time as _time
 import traceback as _traceback
@@ -8,8 +7,10 @@ from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor, Future
 from threading import Thread as _Thread
 from typing import Optional as _Optional
 
+from tasks.FkDestination import FkDestination as _FkDestination
+from tasks.FkSource import FkSource as _FkSource
 from tasks.FkTask import FkImage as _FkImage, FkTask as _FkTask, FkReportableTask as _FkExTask
-from utils import KNOWN_IMAGE_EXTENSIONS as _KNOWN_IMAGE_EXTENSIONS, format_timestamp as _format_timestamp
+from utils import format_timestamp as _format_timestamp
 
 
 class _FkTaskContext:
@@ -117,28 +118,27 @@ class _FkTaskExecutor:
 
 class _FkTaskContextFactory:
     def __init__(self, pipeline: "FkPipeline"):
-        self._queue: _queue.Queue[str] = _queue.Queue(maxsize=2048)
+        self._queue: _queue.Queue[_FkImage] = _queue.Queue(maxsize=2048)
         self._pipeline = pipeline
         self._started = False
         self.shutdown = False
         self._factory_thread = None
 
-    def submit(self, image_filepath: str):
+    def submit(self, image: _FkImage):
         if not self._started:
             self._started = True
             self._factory_thread = _Thread(target=self.process_queue, daemon=True)
             self._factory_thread.start()
 
-        self._queue.put(image_filepath)
+        self._queue.put(image)
 
     def process_queue(self):
         # noinspection PyProtectedMember
         while not self._pipeline._shutdown and not self.shutdown:
             try:
-                next_image_path = self._queue.get(block=True, timeout=5)
-                if next_image_path:
-                    task_image = _FkImage(next_image_path)
-                    task_context = _FkTaskContext(task_image)
+                next_image = self._queue.get(block=True, timeout=5)
+                if next_image:
+                    task_context = _FkTaskContext(next_image)
 
                     # noinspection PyProtectedMember
                     self._pipeline._entry_executor.submit(task_context)
@@ -152,13 +152,13 @@ class _FkTaskContextFactory:
 class FkPipeline:
     def __init__(
             self,
-            input_dirpath: str,
-            output_dirpath: str,
+            input_src: _FkSource,
+            output_dst: _FkDestination,
             image_ext: str = ".png",
             caption_text_ext: str = ".txt"
     ):
-        self.input_dirpath = input_dirpath
-        self.output_dirpath = output_dirpath
+        self.input_source = input_src
+        self.output_dst = output_dst
 
         self.image_ext = image_ext
         self.caption_text_ext = caption_text_ext
@@ -198,6 +198,11 @@ class FkPipeline:
 
         return False
 
+    @property
+    def tasks(self):
+        # noinspection PyProtectedMember
+        return [executor._task for executor in self._executors]
+
     def add_task(self, task: _FkTask, max_workers: int = 20, max_attempts: int = 5, queue_depth: int = -1):
         if self._started:
             raise RuntimeError("Pipeline already started.")
@@ -216,33 +221,15 @@ class FkPipeline:
 
         # print("Tasks:", tasks_len)
         self._entry_executor = self._executors[0]
-
         self._context_factory = _FkTaskContextFactory(self)
-
-        def scan_dirpath(dirpath: str):
-            self._scanned_directory_count += 1
-            for filename in _os.listdir(dirpath):
-                filepath = _os.path.join(dirpath, filename)
-
-                if _os.path.isdir(filepath):
-                    scan_dirpath(filepath)
-
-                else:
-                    file_ext = _os.path.splitext(filename)[1]
-                    if file_ext not in _KNOWN_IMAGE_EXTENSIONS:
-                        continue
-
-                    self._context_factory.submit(filepath)
-                    self._processed_image_count += 1
-
-        _os.makedirs(self.output_dirpath, exist_ok=True)
 
         self._start_time = _time.time()
 
-
         try:
-            print("Scanning directory:", self.input_dirpath)
-            scan_dirpath(self.input_dirpath)
+            for input_image in self.input_source.iterator():
+                self._context_factory.submit(input_image)
+                self._processed_image_count += 1
+
         except KeyboardInterrupt as kbi:
             self.shutdown()
             raise kbi
@@ -318,8 +305,6 @@ class FkPipeline:
 
         self._save_executor.shutdown(wait=True, cancel_futures=True)
 
-        self.report()
-
     def save(self, task_context: _FkTaskContext):
         if self._shutdown:
             raise RuntimeError("Pipeline shutdown.")
@@ -332,7 +317,9 @@ class FkPipeline:
         # noinspection PyBroadException
         def save_fn():
             try:
-                task_context.image.save(self.output_dirpath, self.image_ext, self.caption_text_ext)
+                task_image = task_context.image
+                self.output_dst.save(task_image, self.image_ext, self.caption_text_ext)
+
                 self._images_saved_count += 1
                 task_context.destroy()
 
