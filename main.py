@@ -35,7 +35,7 @@ if __name__ == '__main__':
             tasks.FkTaskIntensiveness.MEDIUM: 40,
             tasks.FkTaskIntensiveness.HIGH: 30,
             tasks.FkTaskIntensiveness.VERY_HIGH: 10,
-            tasks.FkTaskIntensiveness.GPU: 2
+            tasks.FkTaskIntensiveness.GPU: 1
         }
     }
 
@@ -85,22 +85,23 @@ if __name__ == '__main__':
         "--output-image-ext", ".jpg",
         "--resource-usage", "make-my-pc-hurt",
         # "--require-caption-text",
-        # # "--required-tags", "scifi,futuristic,armour,armor,cyberpunk,punk,military,android,cybernetic,robot,"
+        # "--required-tags", "scifi,futuristic,armour,armor,cyberpunk,punk,military,android,cybernetic,robot,"
         #                    "synthwave,fantasy,magic,spell,werewolf,mermaid,merman,zombie,wizard,witch,sorcerer,"
         #                    "cyberpunk,punk,car,tank,bomb,planet,space",
         # "--blacklisted-tags", "anime,1girl,1boy,waifu,senpai,drawing,painting,1woman,1man,chibi,sticker,"
-        #                       "shrek,gigachad",
-        # "--minimum-dimensions", "768x768",
-        "--normalize-captions",
+        #                      "shrek,gigachad",
+        # "--minimum-dimensions", "896x896",
+        # "--normalize-captions",
         # "--brightness-min-threshold", "0.15",
         # "--brightness-max-threshold", "0.935",
+        # "--square-ratio",
         # "--modes", "RGB",
         # "--scale", "896",
         # "--blur-threshold", "300",
         # "--entropy-threshold", "6.95",
         "--chad-score", "7.65",
-        r"E:\MidJourney\2023_05_01_02",
-        r"E:\MidJourney\2023_05_01_03"
+        r"E:\MidJourney\2023_05_01",
+        r"E:\MidJourney\2023_05_01_01"
     ]
 
     args = arg_parser.parse_args(args=(sys.argv[1:] or test_args or ['--help']))

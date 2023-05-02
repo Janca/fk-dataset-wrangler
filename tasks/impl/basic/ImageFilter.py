@@ -2,6 +2,8 @@ import argparse as _argparse
 import textwrap as _textwrap
 from typing import Optional as _Optional
 
+import PIL.Image as _PIL
+
 from tasks import FkImage as _FkImage, FkReportableTask as _FkReportableTask, \
     FkTaskIntensiveness as _FkTaskIntensiveness
 
@@ -12,10 +14,12 @@ class ImageFilter(_FkReportableTask):
             self,
             minimum_dimensions: tuple[int, int] = None,
             maximum_dimensions: tuple[int, int] = None,
-            modes: list[str] = None
+            modes: list[str] = None,
+            square_images: bool = False
     ):
         self.minimum_dimensions = minimum_dimensions
         self.maximum_dimensions = maximum_dimensions
+        self.square_images = square_images
         self.modes = modes
 
         self._invalid_modes = []
@@ -46,6 +50,15 @@ class ImageFilter(_FkReportableTask):
                  "(default: None [disabled])"
         )
 
+        arg_parser.add_argument(
+            "--square-ratio",
+            default=False,
+            action="store_true",
+            required=False,
+            help="discard any image not meeting a 1:1 image ratio "
+                 "(default: False)"
+        )
+
     def parse_args(self, args: _argparse.Namespace) -> bool:
         if args.minimum_dimensions:
             w = h = args.minimum_dimensions
@@ -65,7 +78,13 @@ class ImageFilter(_FkReportableTask):
         if args.modes:
             self.modes = [t.strip() for t in args.modes.split(",")]
 
-        return not (not self.modes and not self.minimum_dimensions and not self.maximum_dimensions)
+        self.square_images = args.square_ratio
+        return not (
+                not self.modes and
+                not self.minimum_dimensions and
+                not self.maximum_dimensions and
+                not self.square_images
+        )
 
     def process(self, image: _FkImage) -> bool:
         width, height = image.image.size
@@ -87,10 +106,25 @@ class ImageFilter(_FkReportableTask):
             if width > max_width or height > max_height:
                 return False
 
+        if self.square_images:
+            if width != height:
+                diff = abs(width - height)
+
+                if diff <= 1:
+                    fixed_size = max(width, height)
+                    image.image = image.image.resize(size=(fixed_size, fixed_size), resample=_PIL.LANCZOS)
+
+                    return True
+
+                else:
+                    return False
+
         return True
 
     def report(self) -> list[tuple[str, any]]:
-        report_items: list[_Optional[tuple[str, any]]] = []
+        report_items: list[_Optional[tuple[str, any]]] = [
+            ("Require square images", self.square_images)
+        ]
 
         if self.modes:
             tags_text = ", ".join(self.modes).strip()
