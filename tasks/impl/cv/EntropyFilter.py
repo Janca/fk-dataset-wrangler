@@ -44,7 +44,7 @@ class EntropyFilter(_FkReportableTask):
 
     @property
     def priority(self) -> int:
-        return 700
+        return 10_100
 
     @property
     def intensiveness(self) -> _FkTaskIntensiveness:

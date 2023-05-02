@@ -36,7 +36,7 @@ class BlurFilter(_FkReportableTask):
 
     @property
     def priority(self) -> int:
-        return 600
+        return 10_000
 
     @property
     def intensiveness(self) -> _FkTaskIntensiveness:

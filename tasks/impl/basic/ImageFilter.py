@@ -113,7 +113,7 @@ class ImageFilter(_FkReportableTask):
 
     @property
     def priority(self) -> int:
-        return 400
+        return 500
 
     @property
     def intensiveness(self) -> _FkTaskIntensiveness:

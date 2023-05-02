@@ -17,6 +17,7 @@ class CaptionNormalizer(_FkTask):
         r"\\": "",  # remove slashes left over from escaped
         r"\:": ", ",  # replace left colons as commas, can't trained merged tags
         r"\|": ", ",  # replace pipes with commas, can't train dynamic or merged tags
+        r"\*": " ",  # remove asterisks
         r"\.(?!\w)": ", ",  # remove periods but preserve things like y.o or 1.8
         "[;'\"+]": ", ",  # remove extraneous punctuation
         "[{}]": " ",  # remove brackets

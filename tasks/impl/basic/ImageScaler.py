@@ -27,7 +27,7 @@ class ImageScaler(_FkTask):
 
     @property
     def priority(self) -> int:
-        return 500
+        return 600
 
     @property
     def intensiveness(self) -> _FkTaskIntensiveness:

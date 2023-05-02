@@ -117,7 +117,7 @@ class CHADScoreFilter(_FkReportableTask):
 
     @property
     def priority(self) -> int:
-        return 10_000
+        return 100_000
 
     @property
     def intensiveness(self) -> _FkTaskIntensiveness:

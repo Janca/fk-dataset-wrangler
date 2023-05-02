@@ -7,9 +7,9 @@ from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor, Future
 from threading import Thread as _Thread
 from typing import Optional as _Optional
 
+from tasks.FkTask import FkImage as _FkImage, FkTask as _FkTask, FkReportableTask as _FkExTask
 from tasks.io.FkDestination import FkDestination as _FkDestination
 from tasks.io.FkSource import FkSource as _FkSource
-from tasks.FkTask import FkImage as _FkImage, FkTask as _FkTask, FkReportableTask as _FkExTask
 from utils import format_timestamp as _format_timestamp
 
 
@@ -167,7 +167,7 @@ class FkPipeline:
         self._entry_executor: _Optional[_FkTaskExecutor] = None
 
         self._save_futures: list[_Future] = []
-        self._save_executor = _ThreadPoolExecutor(max_workers=4)
+        self._save_executor = _ThreadPoolExecutor(max_workers=10)
         self._context_factory = None
 
         self._started = False
@@ -230,12 +230,12 @@ class FkPipeline:
                 self._context_factory.submit(input_image)
                 self._processed_image_count += 1
 
+            if self._processed_image_count <= 0:
+                self.shutdown()
+
         except KeyboardInterrupt as kbi:
             self.shutdown()
             raise kbi
-
-        if self._processed_image_count <= 0:
-            self.shutdown()
 
     def report(self):
         print()

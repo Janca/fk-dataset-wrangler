@@ -3,6 +3,7 @@ import argparse as _argparse
 import enum as _enum
 import hashlib as _hashlib
 import os as _os
+import shutil
 from typing import Optional as _Optional
 
 import PIL.Image as _Pillow
@@ -21,6 +22,8 @@ class FkImage:
         self._cv2_image = None
         self._cv2_grayscale_image = None
 
+        self._modified_image = False
+
         self._caption_text = caption_text
         self._destroyed = False
 
@@ -38,6 +41,8 @@ class FkImage:
 
     @image.setter
     def image(self, image: _PillowImage):
+        self._modified_image = True
+
         self._image = image
         self._cv2_image = None
 
@@ -153,7 +158,13 @@ class FkImage:
             filename_hash + image_ext
         )
 
-        self.image.save(save_image_filepath, quality=95 if image_ext in [".jpg", ".jpeg"] else None)
+        i_ext = self.extension
+        if i_ext == image_ext and not self._modified_image:
+            shutil.copyfile(self.filepath, save_image_filepath)
+
+        else:
+            self.image.save(save_image_filepath, quality=95 if image_ext in [".jpg", ".jpeg"] else None)
+
         self.image.close()
 
         if self.caption_text:

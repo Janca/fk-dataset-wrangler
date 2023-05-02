@@ -31,10 +31,10 @@ if __name__ == '__main__':
             tasks.FkTaskIntensiveness.GPU: 1
         },
         "make-my-pc-hurt": {
-            tasks.FkTaskIntensiveness.LOW: 40,
-            tasks.FkTaskIntensiveness.MEDIUM: 30,
-            tasks.FkTaskIntensiveness.HIGH: 20,
-            tasks.FkTaskIntensiveness.VERY_HIGH: 5,
+            tasks.FkTaskIntensiveness.LOW: 60,
+            tasks.FkTaskIntensiveness.MEDIUM: 40,
+            tasks.FkTaskIntensiveness.HIGH: 30,
+            tasks.FkTaskIntensiveness.VERY_HIGH: 10,
             tasks.FkTaskIntensiveness.GPU: 2
         }
     }
@@ -84,23 +84,26 @@ if __name__ == '__main__':
     test_args = [
         "--output-image-ext", ".jpg",
         "--resource-usage", "make-my-pc-hurt",
-        "--require-caption-text",
-        # "--required-tags", "scifi,futuristic,armour,armor,cyberpunk,punk,military,android,cybernetic,robot,"
+        # "--require-caption-text",
+        # # "--required-tags", "scifi,futuristic,armour,armor,cyberpunk,punk,military,android,cybernetic,robot,"
         #                    "synthwave,fantasy,magic,spell,werewolf,mermaid,merman,zombie,wizard,witch,sorcerer,"
         #                    "cyberpunk,punk,car,tank,bomb,planet,space",
-        # "--blacklisted-tags", "anime,1girl,1boy,waifu,senpai,asian,drawing,painting,1woman,1man,chibi,sticker,"
-        #                       "driftjohnson",
+        # "--blacklisted-tags", "anime,1girl,1boy,waifu,senpai,drawing,painting,1woman,1man,chibi,sticker,"
+        #                       "shrek,gigachad",
         # "--minimum-dimensions", "768x768",
+        "--normalize-captions",
+        # "--brightness-min-threshold", "0.15",
+        # "--brightness-max-threshold", "0.935",
         # "--modes", "RGB",
         # "--scale", "896",
-        # "--blur-threshold", "675",
-        # "--entropy-threshold", "7.15",
-        "--chad-score", "7.35",
-        r"E:\StableDiffusion\SD Datasets\CivitAI\2023_03_18\dataset",
-        r"E:\StableDiffusion\SD Datasets\CivitAI\2023_03_18\dataset_test_w"
+        # "--blur-threshold", "300",
+        # "--entropy-threshold", "6.95",
+        "--chad-score", "7.65",
+        r"E:\MidJourney\2023_05_01_02",
+        r"E:\MidJourney\2023_05_01_03"
     ]
 
-    args = arg_parser.parse_args(args=(test_args or sys.argv[1:] or ['--help']))
+    args = arg_parser.parse_args(args=(sys.argv[1:] or test_args or ['--help']))
 
     print("Pipeline arguments:")
     print(json.dumps(vars(args), sort_keys=True, indent=2))
@@ -111,7 +114,7 @@ if __name__ == '__main__':
     image_ext = args.output_image_ext
     resource_pool_selection = args.resource_usage or "low"
     resource_pool = resource_pools[resource_pool_selection]
-    gpu_multipass = True
+    gpu_multipass = False
 
     input_src = tasks.FkDirectorySource(input_dirpath, True)
     output_dst = tasks.FkDirectoryDestination(output_dirpath)
@@ -138,7 +141,10 @@ if __name__ == '__main__':
         buffer = tasks.FkBuffer()
         cpu_pipeline = tasks.FkPipeline(input_src, buffer, image_ext)
         for cpu_task in cpu_tasks:
-            cpu_pipeline.add_task(cpu_task)
+            intensiveness = cpu_task.intensiveness
+            max_workers = resource_pool[intensiveness]
+
+            cpu_pipeline.add_task(cpu_task, max_workers)
 
         pipelines.append(cpu_pipeline)
 
@@ -146,15 +152,25 @@ if __name__ == '__main__':
         for i, gpu_task in enumerate(gpu_tasks, start=1):
             out_buffer = tasks.FkBuffer() if i < len(gpu_tasks) else output_dst
             gpu_pipeline = tasks.FkPipeline(next_buffer, out_buffer, image_ext)
-            gpu_pipeline.add_task(gpu_task)
 
+            intensiveness = gpu_task.intensiveness
+            max_workers = resource_pool[intensiveness]
+
+            gpu_pipeline.add_task(gpu_task, max_workers)
             next_buffer = out_buffer
+
             pipelines.append(gpu_pipeline)
 
         print(f"Completed multi-pass setup... {len(pipelines)} pipelines created...")
 
     else:
         pipeline = tasks.FkPipeline(input_src, output_dst, image_ext)
+        for task in runtime_tasks:
+            intensiveness = task.intensiveness
+            max_workers = resource_pool[intensiveness]
+
+            pipeline.add_task(task)
+
         pipelines.append(pipeline)
 
     for image_pipeline in pipelines:
@@ -165,31 +181,25 @@ if __name__ == '__main__':
             print(f"Initializing task: {pipeline_task.__class__.__name__}")
             pipeline_task.initialize()
 
-            intensiveness = pipeline_task.intensiveness
-            max_workers = resource_pool[intensiveness]
-
-            image_pipeline.add_task(pipeline_task, max_workers=max_workers)
-
         print()
 
-        print("Starting pipeline...")
-        image_pipeline.start()
-
         try:
+            print("Starting pipeline...")
+            image_pipeline.start()
+
             print()
             print("Waiting for workers to complete...")
             while image_pipeline.active:
                 time.sleep(1)
 
-        except KeyboardInterrupt:
-            print("Pipeline interrupted...")
+            print("Pipeline complete...")
             image_pipeline.shutdown()
             image_pipeline.report()
-            sys.exit()
 
-        print("Pipeline complete...")
-        image_pipeline.shutdown()
-        image_pipeline.report()
+        except KeyboardInterrupt:
+            print("Pipeline interrupted...")
+            image_pipeline.report()
+            sys.exit()
 
         print()
         print("-" * 42)
