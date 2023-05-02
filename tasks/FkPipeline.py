@@ -7,8 +7,8 @@ from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor, Future
 from threading import Thread as _Thread
 from typing import Optional as _Optional
 
-from tasks.FkDestination import FkDestination as _FkDestination
-from tasks.FkSource import FkSource as _FkSource
+from tasks.io.FkDestination import FkDestination as _FkDestination
+from tasks.io.FkSource import FkSource as _FkSource
 from tasks.FkTask import FkImage as _FkImage, FkTask as _FkTask, FkReportableTask as _FkExTask
 from utils import format_timestamp as _format_timestamp
 
@@ -226,7 +226,7 @@ class FkPipeline:
         self._start_time = _time.time()
 
         try:
-            for input_image in self.input_source.iterator():
+            for input_image in self.input_source.yield_next():
                 self._context_factory.submit(input_image)
                 self._processed_image_count += 1
 

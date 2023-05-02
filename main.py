@@ -81,7 +81,24 @@ if __name__ == '__main__':
         task_group = arg_parser.add_argument_group(f"{task_inst.__class__.__name__} options")
         task_inst.register_args(task_group)
 
-    test_args = None
+    test_args = [
+        "--output-image-ext", ".jpg",
+        "--resource-usage", "make-my-pc-hurt",
+        "--require-caption-text",
+        # "--required-tags", "scifi,futuristic,armour,armor,cyberpunk,punk,military,android,cybernetic,robot,"
+        #                    "synthwave,fantasy,magic,spell,werewolf,mermaid,merman,zombie,wizard,witch,sorcerer,"
+        #                    "cyberpunk,punk,car,tank,bomb,planet,space",
+        # "--blacklisted-tags", "anime,1girl,1boy,waifu,senpai,asian,drawing,painting,1woman,1man,chibi,sticker,"
+        #                       "driftjohnson",
+        # "--minimum-dimensions", "768x768",
+        # "--modes", "RGB",
+        # "--scale", "896",
+        # "--blur-threshold", "675",
+        # "--entropy-threshold", "7.15",
+        "--chad-score", "7.35",
+        r"E:\StableDiffusion\SD Datasets\CivitAI\2023_03_18\dataset",
+        r"E:\StableDiffusion\SD Datasets\CivitAI\2023_03_18\dataset_test_w"
+    ]
 
     args = arg_parser.parse_args(args=(test_args or sys.argv[1:] or ['--help']))
 

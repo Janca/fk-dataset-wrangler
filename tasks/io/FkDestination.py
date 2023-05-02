@@ -1,7 +1,7 @@
 import abc as _abc
 import os as _os
 
-from tasks.FkSource import FkSource as _FkSource
+from tasks.io.FkSource import FkSource as _FkSource
 from tasks.FkTask import FkImage as _FkImage
 
 

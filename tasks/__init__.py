@@ -1,7 +1,6 @@
 from tasks.FkPipeline import FkPipeline
 from tasks.FkTask import FkTask, FkImage, FkReportableTask, FkTaskIntensiveness
-from tasks.FkSource import FkSource, FkDirectorySource
-from tasks.FkDestination import FkDestination, FkDirectoryDestination, FkBuffer
+from tasks.io import FkDestination, FkDirectoryDestination, FkBuffer, FkSource
 
 # import tasks.basic
 # import tasks.cv
