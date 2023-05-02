@@ -4,6 +4,7 @@ import os
 import sys
 import time
 
+import io
 import tasks
 import utils
 
@@ -117,8 +118,8 @@ if __name__ == '__main__':
     resource_pool = resource_pools[resource_pool_selection]
     gpu_multipass = False
 
-    input_src = tasks.FkDirectorySource(input_dirpath, True)
-    output_dst = tasks.FkDirectoryDestination(output_dirpath)
+    input_src = io.FkDirectorySource(input_dirpath, True)
+    output_dst = io.FkDirectoryDestination(output_dirpath)
 
     runtime_tasks: list[tasks.FkTask] = []
     for task_inst in tasks_instances:
@@ -139,7 +140,7 @@ if __name__ == '__main__':
             else:
                 cpu_tasks.append(task)
 
-        buffer = tasks.FkBuffer()
+        buffer = io.FkPathBuffer()
         cpu_pipeline = tasks.FkPipeline(input_src, buffer, image_ext)
         for cpu_task in cpu_tasks:
             intensiveness = cpu_task.intensiveness
@@ -151,7 +152,7 @@ if __name__ == '__main__':
 
         next_buffer = buffer
         for i, gpu_task in enumerate(gpu_tasks, start=1):
-            out_buffer = tasks.FkBuffer() if i < len(gpu_tasks) else output_dst
+            out_buffer = io.FkPathBuffer() if i < len(gpu_tasks) else output_dst
             gpu_pipeline = tasks.FkPipeline(next_buffer, out_buffer, image_ext)
 
             intensiveness = gpu_task.intensiveness

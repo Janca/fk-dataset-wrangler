@@ -1,21 +1,13 @@
-import abc as _abc
 import os as _os
 
+from nicegui import ui
+
+from io.shared import FkSource as _FkSource
 from tasks.FkTask import FkImage as _FkImage
 from utils import KNOWN_IMAGE_EXTENSIONS as _KNOWN_IMAGE_EXTENSIONS
 
 
-class FkSource(_abc.ABC):
-
-    def __init__(self, src_path: str):
-        self.src_path = _os.path.realpath(src_path)
-
-    @_abc.abstractmethod
-    def yield_next(self) -> _FkImage:
-        pass
-
-
-class FkDirectorySource(FkSource):
+class FkDirectorySource(_FkSource):
     def __init__(self, src_path: str, recursive: bool = True):
         self.recursive = recursive
         super().__init__(src_path)
@@ -32,3 +24,10 @@ class FkDirectorySource(FkSource):
                     yield _FkImage(file_entry.path)
 
         yield from scan_dir(self.src_path)
+
+    @classmethod
+    def webui_element(cls):
+        with ui.element("div") as element:
+            pass
+
+        return element
