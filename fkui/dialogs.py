@@ -1,61 +1,135 @@
-from typing import Callable as _Callable, Optional
+import collections
+from typing import Optional, Callable
 
+import nicegui.element
+import nicegui.elements.mixins.text_element
 import nicegui.elements.mixins.value_element
 from nicegui import ui
 
+import fkui.utils
+from fkio.FkSource import FkSource
 
-def show_source_selector(src_classes: list, on_select: _Callable[[any, ...], None] = None):
-    with ui.dialog().props("no-backdrop-dismiss") as dialog, ui.card().style("min-width:368px"):
+FkButton = collections.namedtuple("FkButton", ["label", "props", "style", "classes"])
+
+
+def show_source_selector(fk_sources: list[FkSource], on_select: Callable[[FkSource, list], None]):
+    selected_source: Optional[FkSource] = None
+    selected_source_inputs: Optional[list[nicegui.element.Element]] = None
+
+    def on_confirm():
+        if not selected_source:
+            return False
+
+        if not selected_source_inputs:
+            return False
+
+        validation = selected_source.webui_validate(*selected_source_inputs)
+        if isinstance(validation, list):
+            has_error = False
+            for i, source_input in enumerate(selected_source_inputs):
+                source_validation = validation[i]
+
+                if isinstance(source_validation, str) or not source_validation:
+                    source_input.props(f"error error-message=\"{source_validation}\"")
+                    has_error = True
+
+            if has_error:
+                return False
+
+        elif not validation:
+            return False
+
+        on_select(selected_source, fkui.utils.get_values(*selected_source_inputs))
+
+    with show_confirm_dialog(
+            title="Select Input Source",
+            props="no-backdrop-dismiss",
+            on_confirmation=on_confirm,
+            confirm_btn=FkButton("Add Input", "color=primary flat", None, None)
+    ):
         with ui.element("div"):
-            ui.label("Pipeline Input Source").style("font-size:1.6rem")
 
-        selected_index = -1
-        form_elements: Optional[list] = None
-        previous_source_ui_element = None
+            def on_source_select(event: nicegui.elements.mixins.value_element.ValueChangeEventArguments):
+                nonlocal selected_source, selected_source_inputs
 
-        def show_source_ui(src_index: int):
-            nonlocal previous_source_ui_element, selected_index, form_elements
+                fk_src: FkSource = event.value
+                if selected_source:
+                    source_webui_wrapper.clear()
 
-            if previous_source_ui_element is not None:
-                source_ui_elem.remove(previous_source_ui_element)
+                with source_webui_wrapper:
+                    ui.label("Configure Input Source").classes("mt-4 text-bold")
 
-            src_cls = src_classes[src_index]
-            selected_index = src_index
+                    fk_src_webui = fk_src.webui_config()
+                    if not fk_src_webui:
+                        source_webui_wrapper.clear()
 
-            with source_ui_elem:
-                src_webui = src_cls.webui_pipeline_config()
-                previous_source_ui_element, form_elements = src_webui
+                    else:
+                        _, selected_source_inputs = fk_src_webui
 
-        source_selector = ui.select(
-            options=[cls.friendly_name() for cls in src_classes],
-            label="Input Source"
-        ).classes("w-full")
+                    selected_source = fk_src
 
-        source_ui_elem = ui.element("div").classes("w-full")
-        source_selector.on("update:model-value", lambda event: show_source_ui(event["args"]["value"]))
+            ui.select(
+                label="Input Source",
+                options={fk_src: fk_src.webui_name() for fk_src in fk_sources},
+                on_change=on_source_select
+            )
 
-        def on_click_okay():
-            if form_elements is None or selected_index == -1:
-                return
-
-            values = [
-                it.value for it in form_elements
-                if isinstance(it, nicegui.elements.mixins.value_element.ValueElement)
-            ]
-
-            try:
-                if on_select:
-                    selected_src = src_classes[selected_index]
-                    on_select(selected_src, values)
-
-            except:
+            with ui.element("form").props("color=negative") as source_webui_wrapper:
                 pass
 
-            finally:
-                dialog.close()
 
-        with ui.element("div").style("display:flex; justify-content:flex-end").classes("w-full"):
-            ui.button("Cancel", on_click=dialog.close).props("color=text flat")
-            ui.button("Okay", on_click=on_click_okay).props("flat").bind_enabled_from(source_selector, "value")
+def show_confirm_dialog(
+        text: str = None,
+        title: str = "Confirm",
+        on_confirmation: Callable[[], Optional[bool]] = None,
+        on_cancel: Callable[[], None] = None,
+        props: str = None,
+        style: str = None,
+        confirm_btn: FkButton = FkButton(label="Yes", props="color=primary flat", style=None, classes=None),
+        cancel_btn: FkButton = FkButton(label="Cancel", props="color=text flat", style=None, classes=None)
+):
+    with ui.dialog().props(props) as dialog:
+        with ui.card().style("min-width:298px;max-width:364px").style(style):
+            with ui.element("div").classes("w-full"):
+                ui.label(title).style("font-size:1.24rem;font-weight:500;")
+
+                if text:
+                    nicegui.elements.mixins.text_element.TextElement(tag="p", text=text).classes("mt-1")
+
+                with ui.element("div").classes("w-full") as inner_content:
+                    pass
+
+            with ui.element("div").style(
+                    "display:flex;"
+                    "flex-flow:row nowrap;"
+                    "justify-content:flex-end;"
+                    "width:100%;"
+                    "gap:0.25rem"
+            ):
+                def _on_cancel():
+                    if on_cancel:
+                        on_cancel()
+
+                    dialog.close()
+
+                def _on_confirmation():
+                    if not on_confirmation:
+                        dialog.close()
+                        return
+
+                    confirm_value = on_confirmation()
+                    if confirm_value is None or confirm_value:
+                        dialog.close()
+
+                ui.button(
+                    text=cancel_btn.label,
+                    on_click=_on_cancel
+                ).props(cancel_btn.props).style(cancel_btn.style).classes(cancel_btn.classes)
+
+                confirm_button = ui.button(
+                    text=confirm_btn.label,
+                    on_click=_on_confirmation
+                ).props(confirm_btn.props).style(confirm_btn.style).classes(confirm_btn.classes)
 
     dialog.open()
+    return inner_content

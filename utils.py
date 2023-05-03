@@ -83,7 +83,7 @@ def download_file(url: str, dst: str) -> bool:
         return False
 
 
-def _load_modules_from_directory(directory, parent_package=None):
+def _load_modules_from_directory(package: str, parent_package=None):
     """
     Method provided by Google Bard <3
     :param directory:
@@ -92,11 +92,14 @@ def _load_modules_from_directory(directory, parent_package=None):
     """
     modules = []
 
+    directory = _os.path.sep.join(package.split("."))
     directory_path = _os.path.abspath(directory)
+
     if directory_path not in _sys.path:
         _sys.path.append(directory_path)
 
     for entry in _os.listdir(directory):
+        package_entry = f"{directory}.{entry}"
         entry_path = _os.path.join(directory, entry)
 
         if _os.path.isfile(entry_path) and entry.endswith(".py") and not entry.startswith("__"):
@@ -117,7 +120,7 @@ def _load_modules_from_directory(directory, parent_package=None):
             else:
                 full_package_name = package_name
 
-            sub_modules = _load_modules_from_directory(entry_path, full_package_name)
+            sub_modules = _load_modules_from_directory(package_entry, full_package_name)
             modules.extend(sub_modules)
 
     return modules
@@ -138,14 +141,14 @@ def get_classes_from_module(module):
     return classes
 
 
-def load_modules_and_classes_from_directory(directory, parent_package=None):
+def load_modules_and_classes_from_directory(package: str, parent_package=None):
     """
     Method provided by Google Bard
     :param directory:
     :param parent_package:
     :return:
     """
-    modules = _load_modules_from_directory(directory, parent_package)
+    modules = _load_modules_from_directory(package, parent_package or package)
     classes = []
 
     for module in modules:
