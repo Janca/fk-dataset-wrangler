@@ -34,7 +34,7 @@ class FkWrangler:
 
                     self.pipelines.clear()
 
-                with ui.row().style("justify-content:flex-end"):
+                with ui.row().style("justify-content:flex-end;"):
                     ui.button(
                         "New Pipeline",
                         on_click=on_click_new_pipeline
@@ -60,10 +60,8 @@ class FkWrangler:
             "header-style=font-weight:500"
         ).classes("w-full") as pipeline_expansion:
             with pipeline_expansion.add_slot("header"):
-                with ui.element("div").style(
+                with ui.row().style(
                         "min-height:100%;"
-                        "display:flex;"
-                        "flex-flow:row nowrap;"
                         "width:100%;"
                         "justify-content:flex-start;"
                         "align-items:center"

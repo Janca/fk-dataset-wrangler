@@ -27,7 +27,7 @@ def show_source_selector(src_classes: list, on_select: _Callable[[any, ...], Non
                 previous_source_ui_element, form_elements = src_webui
 
         source_selector = ui.select(
-            options=[cls.__name__ for cls in src_classes],
+            options=[cls.friendly_name() for cls in src_classes],
             label="Input Source"
         ).classes("w-full")
 
