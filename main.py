@@ -4,39 +4,39 @@ import os
 import sys
 import time
 
-import io
-import tasks
+import fkio
+import fktasks
 import utils
 
 if __name__ == '__main__':
     resource_pools = {
         "low": {
-            tasks.FkTaskIntensiveness.LOW: 5,
-            tasks.FkTaskIntensiveness.MEDIUM: 5,
-            tasks.FkTaskIntensiveness.HIGH: 2,
-            tasks.FkTaskIntensiveness.VERY_HIGH: 1,
-            tasks.FkTaskIntensiveness.GPU: 1
+            fktasks.FkTaskIntensiveness.LOW: 5,
+            fktasks.FkTaskIntensiveness.MEDIUM: 5,
+            fktasks.FkTaskIntensiveness.HIGH: 2,
+            fktasks.FkTaskIntensiveness.VERY_HIGH: 1,
+            fktasks.FkTaskIntensiveness.GPU: 1
         },
         "med": {
-            tasks.FkTaskIntensiveness.LOW: 10,
-            tasks.FkTaskIntensiveness.MEDIUM: 10,
-            tasks.FkTaskIntensiveness.HIGH: 5,
-            tasks.FkTaskIntensiveness.VERY_HIGH: 2,
-            tasks.FkTaskIntensiveness.GPU: 1
+            fktasks.FkTaskIntensiveness.LOW: 10,
+            fktasks.FkTaskIntensiveness.MEDIUM: 10,
+            fktasks.FkTaskIntensiveness.HIGH: 5,
+            fktasks.FkTaskIntensiveness.VERY_HIGH: 2,
+            fktasks.FkTaskIntensiveness.GPU: 1
         },
         "high": {
-            tasks.FkTaskIntensiveness.LOW: 30,
-            tasks.FkTaskIntensiveness.MEDIUM: 20,
-            tasks.FkTaskIntensiveness.HIGH: 10,
-            tasks.FkTaskIntensiveness.VERY_HIGH: 5,
-            tasks.FkTaskIntensiveness.GPU: 1
+            fktasks.FkTaskIntensiveness.LOW: 30,
+            fktasks.FkTaskIntensiveness.MEDIUM: 20,
+            fktasks.FkTaskIntensiveness.HIGH: 10,
+            fktasks.FkTaskIntensiveness.VERY_HIGH: 5,
+            fktasks.FkTaskIntensiveness.GPU: 1
         },
         "make-my-pc-hurt": {
-            tasks.FkTaskIntensiveness.LOW: 60,
-            tasks.FkTaskIntensiveness.MEDIUM: 40,
-            tasks.FkTaskIntensiveness.HIGH: 30,
-            tasks.FkTaskIntensiveness.VERY_HIGH: 10,
-            tasks.FkTaskIntensiveness.GPU: 1
+            fktasks.FkTaskIntensiveness.LOW: 60,
+            fktasks.FkTaskIntensiveness.MEDIUM: 40,
+            fktasks.FkTaskIntensiveness.HIGH: 30,
+            fktasks.FkTaskIntensiveness.VERY_HIGH: 10,
+            fktasks.FkTaskIntensiveness.GPU: 1
         }
     }
 
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     )
 
     working_directory = os.path.dirname(os.path.realpath(__file__))
-    tasks_directory = os.path.join(working_directory, "tasks", "impl")
+    tasks_directory = os.path.join(working_directory, "fktasks", "impl")
     _, tasks_classes = utils.load_modules_and_classes_from_directory(tasks_directory)
 
     tasks_instances = [task_class() for task_class in tasks_classes if not task_class.__name__.startswith("_")]
@@ -118,30 +118,30 @@ if __name__ == '__main__':
     resource_pool = resource_pools[resource_pool_selection]
     gpu_multipass = False
 
-    input_src = io.FkDirectorySource(input_dirpath, True)
-    output_dst = io.FkDirectoryDestination(output_dirpath)
+    input_src = fkio.FkDirectorySource(input_dirpath, True)
+    output_dst = fkio.FkDirectoryDestination(output_dirpath)
 
-    runtime_tasks: list[tasks.FkTask] = []
+    runtime_tasks: list[fktasks.FkTask] = []
     for task_inst in tasks_instances:
         if task_inst.parse_args(args):
             runtime_tasks.append(task_inst)
 
     runtime_tasks = sorted(runtime_tasks, key=lambda task: task.priority)
-    pipelines: list[tasks.FkPipeline] = []
+    pipelines: list[fktasks.FkPipeline] = []
 
     if gpu_multipass:
         cpu_tasks = []
         gpu_tasks = []
 
         for task in runtime_tasks:
-            if task.intensiveness == tasks.FkTaskIntensiveness.GPU:
+            if task.intensiveness == fktasks.FkTaskIntensiveness.GPU:
                 gpu_tasks.append(task)
 
             else:
                 cpu_tasks.append(task)
 
-        buffer = io.FkPathBuffer()
-        cpu_pipeline = tasks.FkPipeline(input_src, buffer, image_ext)
+        buffer = fkio.FkPathBuffer()
+        cpu_pipeline = fktasks.FkPipeline(input_src, buffer, image_ext)
         for cpu_task in cpu_tasks:
             intensiveness = cpu_task.intensiveness
             max_workers = resource_pool[intensiveness]
@@ -152,8 +152,8 @@ if __name__ == '__main__':
 
         next_buffer = buffer
         for i, gpu_task in enumerate(gpu_tasks, start=1):
-            out_buffer = io.FkPathBuffer() if i < len(gpu_tasks) else output_dst
-            gpu_pipeline = tasks.FkPipeline(next_buffer, out_buffer, image_ext)
+            out_buffer = fkio.FkPathBuffer() if i < len(gpu_tasks) else output_dst
+            gpu_pipeline = fktasks.FkPipeline(next_buffer, out_buffer, image_ext)
 
             intensiveness = gpu_task.intensiveness
             max_workers = resource_pool[intensiveness]
@@ -166,7 +166,7 @@ if __name__ == '__main__':
         print(f"Completed multi-pass setup... {len(pipelines)} pipelines created...")
 
     else:
-        pipeline = tasks.FkPipeline(input_src, output_dst, image_ext)
+        pipeline = fktasks.FkPipeline(input_src, output_dst, image_ext)
         for task in runtime_tasks:
             intensiveness = task.intensiveness
             max_workers = resource_pool[intensiveness]

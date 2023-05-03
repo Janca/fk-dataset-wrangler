@@ -1,4 +1,4 @@
-from ui import FkWrangler
+from fkui import FkWrangler
 
 if __name__ == "__main__" or __name__ == "__mp_main__":
     wrangler = FkWrangler()
