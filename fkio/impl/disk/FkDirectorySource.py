@@ -28,7 +28,7 @@ class FkDirectorySource(_FkSource):
 
     @classmethod
     def webui_config(cls):
-        with ui.grid().style() as element:
+        with ui.grid() as element:
             input_dirpath = ui.input("Input directory", placeholder="/path/to/input/directory").classes("w-full")
             recursive = ui.checkbox("Include subdirectories", value=True).classes().props("left-label")
 
@@ -45,7 +45,7 @@ class FkDirectorySource(_FkSource):
     @classmethod
     def webui_info(cls, src_path: str, recursive: bool):
         with ui.element("div") as element:
-            with ui.grid(columns=2).style("gap:0 0.2rem"):
+            with ui.grid(columns=2).style("gap:0 0.2rem; grid-template-columns:min-content min-content;"):
                 ui.label("Directory:").classes("text-bold")
                 ui.label(src_path).style("font-family:monospace")
 

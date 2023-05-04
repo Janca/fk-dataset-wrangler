@@ -11,6 +11,7 @@ import cv2 as _cv2
 import numpy as _numpy
 from PIL.Image import Image as _PillowImage
 
+from shared import FkWebUI
 from utils import KNOWN_CAPTION_TEXT_EXTENSIONS as _KNOWN_CAPTION_TEXT_EXTENSIONS
 
 
@@ -208,7 +209,7 @@ class FkTaskIntensiveness(_enum.Enum):
     GPU = 5
 
 
-class FkTask(_abc.ABC):
+class FkTask(FkWebUI, _abc.ABC):
 
     def initialize(self):
         """
@@ -230,7 +231,7 @@ class FkTask(_abc.ABC):
 
     @property
     def name(self) -> str:
-        return self.__class__.__name__
+        return self.__class__.webui_name()
 
     @property
     def intensiveness(self) -> FkTaskIntensiveness:

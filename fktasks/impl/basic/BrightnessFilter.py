@@ -2,7 +2,9 @@ import argparse as _argparse
 import math as _math
 
 import PIL.ImageStat as _PILImageStat
+import nicegui.element
 import numpy as _numpy
+from nicegui import ui
 
 import utils
 from fktasks import FkImage as _FkImage, FkTaskIntensiveness as _FkTaskIntensiveness
@@ -79,4 +81,35 @@ class BrightnessFilter(_FkReportableTask):
     def intensiveness(self) -> _FkTaskIntensiveness:
         return _FkTaskIntensiveness.LOW
 
+    @classmethod
+    def webui_config(cls, *args, **kwargs) -> tuple[nicegui.element.Element, list[nicegui.element.Element]]:
+        with ui.element("div").classes("w-full") as element:
+            ui.label("Minimum Brightness").style("font-weight:500")
+            with ui.element("div"):
+                def_args = {
+                    "min": 0.001,
+                    "max": 1.000,
+                    "step": 0.001
+                }
 
+                minimum_brightness = ui.slider(**def_args, value=0.15).props("label switch-label-side")
+
+                ui.label("Maximum Brightness").style("font-weight:500")
+                maximum_brightness = ui.slider(**def_args, value=0.975).props("label")
+
+                def update_max_slider(event):
+                    maximum_brightness._props["min"] = float(event["args"]) + 0.001
+                    maximum_brightness.update()
+
+                def update_min_slider(event):
+                    minimum_brightness._props["max"] = float(event["args"]) - 0.001
+                    minimum_brightness.update()
+
+                maximum_brightness.on('change', update_min_slider)
+                minimum_brightness.on('change', update_max_slider)
+
+        return element, [minimum_brightness, maximum_brightness]
+
+    @classmethod
+    def webui_name(cls) -> str:
+        return "Brightness Filter"

@@ -1,1 +1,1 @@
-from fktasks.impl.basic.JPGQualityFilter import JPGQualityFilter
+#from fktasks.impl.basic.JPGQualityFilter import JPGQualityFilter

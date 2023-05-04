@@ -83,7 +83,7 @@ def download_file(url: str, dst: str) -> bool:
         return False
 
 
-def _load_modules_from_directory(package: str, parent_package=None):
+def _load_modules_from_directory(directory, parent_package=None):
     """
     Method provided by Google Bard <3
     :param directory:
@@ -92,14 +92,11 @@ def _load_modules_from_directory(package: str, parent_package=None):
     """
     modules = []
 
-    directory = _os.path.sep.join(package.split("."))
     directory_path = _os.path.abspath(directory)
-
     if directory_path not in _sys.path:
         _sys.path.append(directory_path)
 
     for entry in _os.listdir(directory):
-        package_entry = f"{directory}.{entry}"
         entry_path = _os.path.join(directory, entry)
 
         if _os.path.isfile(entry_path) and entry.endswith(".py") and not entry.startswith("__"):
@@ -110,8 +107,10 @@ def _load_modules_from_directory(package: str, parent_package=None):
             else:
                 full_module_name = module_name
 
-            module = _importlib.import_module(full_module_name)
-            modules.append(module)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=DeprecationWarning)
+                module = _importlib.import_module(full_module_name)
+                modules.append(module)
 
         elif _os.path.isdir(entry_path) and _os.path.isfile(_os.path.join(entry_path, "__init__.py")):
             package_name = entry
@@ -120,7 +119,7 @@ def _load_modules_from_directory(package: str, parent_package=None):
             else:
                 full_package_name = package_name
 
-            sub_modules = _load_modules_from_directory(package_entry, full_package_name)
+            sub_modules = _load_modules_from_directory(entry_path, full_package_name)
             modules.extend(sub_modules)
 
     return modules
@@ -135,20 +134,20 @@ def get_classes_from_module(module):
     classes = []
 
     for name, obj in _inspect.getmembers(module):
-        if _inspect.isclass(obj) and obj.__module__ == module.__name__:
+        if _inspect.isclass(obj) and obj.__module__ == module.__name__ and not name[0] == "_":
             classes.append(obj)
 
     return classes
 
 
-def load_modules_and_classes_from_directory(package: str, parent_package=None):
+def load_modules_and_classes_from_directory(directory, parent_package=None):
     """
     Method provided by Google Bard
     :param directory:
     :param parent_package:
     :return:
     """
-    modules = _load_modules_from_directory(package, parent_package or package)
+    modules = _load_modules_from_directory(directory, parent_package)
     classes = []
 
     for module in modules:

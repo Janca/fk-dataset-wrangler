@@ -1,5 +1,5 @@
 import collections
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 
 import nicegui.element
 import nicegui.elements.mixins.text_element
@@ -7,30 +7,37 @@ import nicegui.elements.mixins.value_element
 from nicegui import ui
 
 import fkui.utils
+from fkio.FkDestination import FkDestination
 from fkio.FkSource import FkSource
+from fktasks.FkTask import FkTask
 
 FkButton = collections.namedtuple("FkButton", ["label", "props", "style", "classes"])
 
 
-def show_source_selector(fk_sources: list[FkSource], on_select: Callable[[FkSource, list], None]):
-    selected_source: Optional[FkSource] = None
-    selected_source_inputs: Optional[list[nicegui.element.Element]] = None
+def show_fkio_selector(
+        fkio_type: str,
+        fkio_obj: list[FkSource],
+        on_select: Callable[[Union[FkSource, FkDestination], list], None]
+):
+    fkio_type = fkio_type.capitalize()
+    selected_fkio: Optional[FkSource] = None
+    selected_fkio_inputs: Optional[list[nicegui.element.Element]] = None
 
     def on_confirm():
-        if not selected_source:
+        if not selected_fkio:
             return False
 
-        if not selected_source_inputs:
+        if not selected_fkio_inputs:
             return False
 
-        validation = selected_source.webui_validate(*selected_source_inputs)
+        validation = selected_fkio.webui_validate(*selected_fkio_inputs)
         if isinstance(validation, list):
             has_error = False
-            for i, source_input in enumerate(selected_source_inputs):
+            for i, fkio_o in enumerate(selected_fkio_inputs):
                 source_validation = validation[i]
 
                 if isinstance(source_validation, str) or not source_validation:
-                    source_input.props(f"error error-message=\"{source_validation}\"")
+                    fkio_o.props(f"error error-message=\"{source_validation}\"")
                     has_error = True
 
             if has_error:
@@ -39,43 +46,76 @@ def show_source_selector(fk_sources: list[FkSource], on_select: Callable[[FkSour
         elif not validation:
             return False
 
-        on_select(selected_source, fkui.utils.get_values(*selected_source_inputs))
+        on_select(selected_fkio, fkui.utils.get_values(*selected_fkio_inputs))
 
     with show_confirm_dialog(
-            title="Select Input Source",
+            title=f"Select {fkio_type} Source",
             props="no-backdrop-dismiss",
             on_confirmation=on_confirm,
-            confirm_btn=FkButton("Add Input", "color=primary flat", None, None)
+            confirm_btn=FkButton(f"Add {fkio_type}", "color=primary flat", None, None)
     ):
         with ui.element("div"):
 
             def on_source_select(event: nicegui.elements.mixins.value_element.ValueChangeEventArguments):
-                nonlocal selected_source, selected_source_inputs
+                nonlocal selected_fkio, selected_fkio_inputs
 
                 fk_src: FkSource = event.value
-                if selected_source:
+                if selected_fkio:
                     source_webui_wrapper.clear()
 
                 with source_webui_wrapper:
-                    ui.label("Configure Input Source").classes("mt-4 text-bold")
+                    ui.label(f"Configure {fkio_type} Source").classes("mt-4 text-bold")
 
                     fk_src_webui = fk_src.webui_config()
                     if not fk_src_webui:
                         source_webui_wrapper.clear()
 
                     else:
-                        _, selected_source_inputs = fk_src_webui
+                        _, selected_fkio_inputs = fk_src_webui
 
-                    selected_source = fk_src
+                    selected_fkio = fk_src
 
             ui.select(
-                label="Input Source",
-                options={fk_src: fk_src.webui_name() for fk_src in fk_sources},
+                label=f"{fkio_type} Source",
+                options={fk_src: fk_src.webui_name() for fk_src in fkio_obj},
                 on_change=on_source_select
-            )
+            ).props("options-dense")
 
             with ui.element("form").props("color=negative") as source_webui_wrapper:
                 pass
+
+
+def show_task_selector(tasks: list[FkTask], on_select=Callable[[FkTask], None]):
+    selected_task: Optional[FkTask] = None
+
+    def on_confirm():
+        nonlocal selected_task
+
+        if not selected_task:
+            return False
+
+        on_select(selected_task)
+        return True
+
+    with show_confirm_dialog(
+            title="Select Task",
+            confirm_btn=FkButton(f"Add Task", "color=primary flat", None, None),
+            on_confirmation=on_confirm
+    ):
+        with ui.element("div"):
+            def on_task_select(event: nicegui.elements.mixins.value_element.ValueChangeEventArguments):
+                nonlocal selected_task
+
+                selected_task = event.value
+
+            ui.select(
+                label="Task",
+                options={fk_task: fk_task.webui_name() for fk_task in tasks},
+                on_change=on_task_select
+            ).props(
+                "menu-anchor=\"bottom left\" "
+                "options-dense"
+            )
 
 
 def show_confirm_dialog(
