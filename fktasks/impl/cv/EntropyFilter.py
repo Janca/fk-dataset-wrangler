@@ -1,8 +1,11 @@
 import argparse as _argparse
 
 import cv2 as _cv2
+import nicegui.element
 import numpy as _numpy
+from nicegui import ui
 
+import fkui.components
 import utils
 from fktasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage, \
     FkTaskIntensiveness as _FkTaskIntensiveness
@@ -57,3 +60,20 @@ class EntropyFilter(_FkReportableTask):
             ("Average Entropy", utils.safe_fn(lambda: _numpy.mean(self._entropy_scores), -1)),
             ("90th Percentile", utils.safe_fn(lambda: _numpy.percentile(self._entropy_scores, 90), -1))
         ]
+
+    @classmethod
+    def webui_config(cls, *args, **kwargs) -> tuple[nicegui.element.Element, list[nicegui.element.Element]]:
+        with ui.element("div").classes("w-full") as element:
+            min_brightness, max_brightness = fkui.components.fk_min_max_sliders(
+                min_slider_label="Minimum Entropy",
+                min_slider_value=6.75,
+                max_slider_label="Maximum Entropy",
+                max_slider_value=8.00,
+                min=0.001, max=8.000, step=0.001
+            )
+
+        return element, [min_brightness, max_brightness]
+
+    @classmethod
+    def webui_name(cls) -> str:
+        return "Entropy Filter"

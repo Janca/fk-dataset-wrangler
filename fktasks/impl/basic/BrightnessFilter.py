@@ -6,6 +6,7 @@ import nicegui.element
 import numpy as _numpy
 from nicegui import ui
 
+import fkui.components
 import utils
 from fktasks import FkImage as _FkImage, FkTaskIntensiveness as _FkTaskIntensiveness
 from fktasks.FkTask import FkReportableTask as _FkReportableTask
@@ -84,31 +85,15 @@ class BrightnessFilter(_FkReportableTask):
     @classmethod
     def webui_config(cls, *args, **kwargs) -> tuple[nicegui.element.Element, list[nicegui.element.Element]]:
         with ui.element("div").classes("w-full") as element:
-            ui.label("Minimum Brightness").style("font-weight:500")
-            with ui.element("div"):
-                def_args = {
-                    "min": 0.001,
-                    "max": 1.000,
-                    "step": 0.001
-                }
+            min_brightness, max_brightness = fkui.components.fk_min_max_sliders(
+                min_slider_label="Minimum Brightness",
+                min_slider_value=0.15,
+                max_slider_label="Maximum Brightness",
+                max_slider_value=0.975,
+                min=0.001, max=1.000, step=0.001
+            )
 
-                minimum_brightness = ui.slider(**def_args, value=0.15).props("label switch-label-side")
-
-                ui.label("Maximum Brightness").style("font-weight:500")
-                maximum_brightness = ui.slider(**def_args, value=0.975).props("label")
-
-                def update_max_slider(event):
-                    maximum_brightness._props["min"] = float(event["args"]) + 0.001
-                    maximum_brightness.update()
-
-                def update_min_slider(event):
-                    minimum_brightness._props["max"] = float(event["args"]) - 0.001
-                    minimum_brightness.update()
-
-                maximum_brightness.on('change', update_min_slider)
-                minimum_brightness.on('change', update_max_slider)
-
-        return element, [minimum_brightness, maximum_brightness]
+        return element, [min_brightness, max_brightness]
 
     @classmethod
     def webui_name(cls) -> str:

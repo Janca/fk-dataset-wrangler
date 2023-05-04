@@ -1,8 +1,11 @@
 import argparse as _argparse
 
 import cv2 as _cv2
+import nicegui.element
 import numpy as _numpy
+from nicegui import ui
 
+import fkui.components
 import utils
 from fktasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage, \
     FkTaskIntensiveness as _FkTaskIntensiveness
@@ -49,3 +52,20 @@ class BlurFilter(_FkReportableTask):
             ("Average Blur", utils.safe_fn(lambda: _numpy.mean(self._blur_scores), -1)),
             ("90th Percentile", utils.safe_fn(lambda: _numpy.percentile(self._blur_scores, 90), -1))
         ]
+
+    @classmethod
+    def webui_config(cls, *args, **kwargs) -> tuple[nicegui.element.Element, list[nicegui.element.Element]]:
+        with ui.element("div").classes("w-full") as element:
+            ui.label("Blur Threshold")
+            blur_threshold = ui.slider(
+                min=0,
+                max=10_000,
+                value=350,
+                step=1
+            ).props("label")
+
+        return element, [blur_threshold]
+
+    @classmethod
+    def webui_name(cls) -> str:
+        return "Blur Filter"

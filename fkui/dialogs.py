@@ -54,7 +54,7 @@ def show_fkio_selector(
             on_confirmation=on_confirm,
             confirm_btn=FkButton(f"Add {fkio_type}", "color=primary flat", None, None)
     ):
-        with ui.element("div"):
+        with ui.element("div").style("padding-top:1rem;"):
 
             def on_source_select(event: nicegui.elements.mixins.value_element.ValueChangeEventArguments):
                 nonlocal selected_fkio, selected_fkio_inputs
@@ -79,7 +79,7 @@ def show_fkio_selector(
                 label=f"{fkio_type} Source",
                 options={fk_src: fk_src.webui_name() for fk_src in fkio_obj},
                 on_change=on_source_select
-            ).props("options-dense")
+            ).props("options-dense outlined")
 
             with ui.element("form").props("color=negative") as source_webui_wrapper:
                 pass
@@ -102,7 +102,7 @@ def show_task_selector(tasks: list[FkTask], on_select=Callable[[FkTask], None]):
             confirm_btn=FkButton(f"Add Task", "color=primary flat", None, None),
             on_confirmation=on_confirm
     ):
-        with ui.element("div"):
+        with ui.element("div").style("padding-top:1rem;"):
             def on_task_select(event: nicegui.elements.mixins.value_element.ValueChangeEventArguments):
                 nonlocal selected_task
 
@@ -114,7 +114,8 @@ def show_task_selector(tasks: list[FkTask], on_select=Callable[[FkTask], None]):
                 on_change=on_task_select
             ).props(
                 "menu-anchor=\"bottom left\" "
-                "options-dense"
+                "options-dense "
+                "outlined"
             )
 
 

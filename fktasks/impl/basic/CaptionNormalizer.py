@@ -71,3 +71,7 @@ class CaptionNormalizer(_FkTask):
     @property
     def intensiveness(self) -> _FkTaskIntensiveness:
         return _FkTaskIntensiveness.LOW
+
+    @classmethod
+    def webui_name(cls) -> str:
+        return "Caption Normalizer"

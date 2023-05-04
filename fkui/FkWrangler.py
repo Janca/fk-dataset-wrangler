@@ -61,8 +61,15 @@ class FkWrangler:
                         pipeline_expansion.open()
 
                 def on_click_clear_pipelines():
-                    pipeline_container.clear()
-                    self.pipeline_configs.clear()
+                    def on_confirmation():
+                        pipeline_container.clear()
+                        self.pipeline_configs.clear()
+
+                    fkui.dialogs.show_confirm_dialog(
+                        text="Delete all pipelines? This action is irreversible.",
+                        title="Delete Pipelines",
+                        on_confirmation=on_confirmation
+                    )
 
                 with ui.row().style("justify-content:flex-end;"):
                     ui.button(
@@ -71,9 +78,9 @@ class FkWrangler:
                     ).props("color=positive icon=queue").classes()
 
                     ui.button(
-                        "Delete All Pipeline",
+                        "Delete All",
                         on_click=on_click_clear_pipelines
                     ).props("color=negative outline icon=delete_sweep")
 
         ui.colors(primary="#3078fe")
-        ui.run(title="FkDatasetWrangler")
+        ui.run(title="FkDatasetWrangler", native=True, window_size=(468, 896))

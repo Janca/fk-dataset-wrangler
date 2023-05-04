@@ -1,8 +1,10 @@
 import argparse as _argparse
 
+import nicegui.element
 import numpy as _numpy
 from PIL.Image import Image as _PillowImage
 from PIL.JpegImagePlugin import JpegImageFile as _PillowJPG
+from nicegui import ui
 
 import utils
 from fktasks import FkReportableTask as _FkReportableTask, FkImage as _FkImage, \
@@ -116,6 +118,18 @@ class JPGQualityFilter(_FkReportableTask):
     @property
     def intensiveness(self) -> _FkTaskIntensiveness:
         return _FkTaskIntensiveness.MEDIUM
+
+    @classmethod
+    def webui_config(cls, *args, **kwargs) -> tuple[nicegui.element.Element, list[nicegui.element.Element]]:
+        with ui.element("div") as element:
+            ui.label("JPG Quality")
+            jpg_slider = ui.slider(min=1, max=100, step=1, value=75).props("label")
+
+        return element, [jpg_slider]
+
+    @classmethod
+    def webui_name(cls) -> str:
+        return "JPG Quality Filter"
 
     @classmethod
     def _get_jpg_quality(cls, image: _PillowImage) -> int:

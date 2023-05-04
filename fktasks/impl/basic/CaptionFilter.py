@@ -1,6 +1,9 @@
 import argparse as _argparse
 import textwrap as _textwrap
 
+import nicegui.element
+from nicegui import ui
+
 from fktasks import FkImage as _FkImage, FkReportableTask as _FkReportableTask, FkTaskIntensiveness
 
 
@@ -104,3 +107,17 @@ class CaptionFilter(_FkReportableTask):
     @property
     def intensiveness(self) -> FkTaskIntensiveness:
         return FkTaskIntensiveness.LOW
+
+    @classmethod
+    def webui_config(cls, *args, **kwargs) -> tuple[nicegui.element.Element, list[nicegui.element.Element]]:
+        with ui.element("div") as element:
+            with ui.grid(rows=3):
+                whitelist_tags = ui.input("Whitelist Tags", placeholder="Comma-separated list").props("outlined")
+                blacklist_tags = ui.input("Blacklist Tags", placeholder="Comma-separated list").props("outlined")
+                require_caption_text = ui.checkbox("Require Caption Text", value=True)
+
+        return element, [whitelist_tags, blacklist_tags, require_caption_text]
+
+    @classmethod
+    def webui_name(cls) -> str:
+        return "Caption Filter"

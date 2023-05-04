@@ -13,19 +13,20 @@ def fk_card(title: str, on_delete: _Callable[[...], None] = None):
     with ui.element("div").style("position:relative;width:100%;"):
         ui.badge(title).style(
             "z-index:100;"
-            "font-size:0.75rem;"
+            "font-size:0.725rem;"
             "font-weight:500;"
-            "left:0.5rem;"
-            "top:-0.5rem;"
-        ).classes("absolute p-1")
+            "line-height:1rem;"
+            "left:0.6rem;"
+            "top:-0.65rem;"
+            "padding:0.25rem 0.5rem"
+        ).classes("absolute")
 
         with ui.card().style(
                 "min-height:64px;"
                 "width:100%;"
                 "position:relative;"
                 "font-size:0.825rem;"
-                # "border:1px solid var(--q-primary)"
-        ).props():
+        ):
             if on_delete:
                 ui.button(
                     on_click=on_delete
@@ -45,7 +46,7 @@ def fk_card(title: str, on_delete: _Callable[[...], None] = None):
                     "margin-bottom:0.25rem"
                 )
 
-            return ui.element("div").classes("w-full")
+            return ui.element("div").style("margin-top:0.35rem;").classes("w-full")
 
 
 def fk_pipeline(
@@ -166,13 +167,26 @@ def fk_pipeline(
 
             with ui.element("div"):
                 def create_task_webui(task: FkTask):
+                    task_name = task.webui_name()
+
+                    def on_task_delete():
+                        def on_confirmation():
+                            pass
+
+                        fkui.dialogs.show_confirm_dialog(
+                            text=f"Are you sure you want to delete task '{task_name}'?",
+                            title="Delete Task",
+                            on_confirmation=on_confirmation
+                        )
+
+                        pass
+
                     if not task_container.visible:
                         task_container.visible = True
                         task_container.update()
 
                     with task_list_container:
-                        task_name = task.webui_name()
-                        with fk_card(task_name, on_delete=lambda: None):
+                        with fk_card(task_name, on_delete=on_task_delete):
                             task_webui = task.webui_config()
                             if not task_webui:
                                 ui.label("No configurable options").style("font-weight:500;")
@@ -190,7 +204,7 @@ def fk_pipeline(
                     with ui.element("div").style(
                             "display:flex;"
                             "flex-flow:column nowrap;"
-                            "gap:1rem;"
+                            "gap:1.25rem;"
                             "margin-bottom:1rem;"
                     ).classes("w-full") as task_list_container:
                         pass
@@ -226,11 +240,12 @@ def fk_pipeline(
                         )
 
                     with output_container:
-                        with fk_card(dst_name, on_delete=on_dst_delete):
-                            output_action_container.visible = False
-                            output_action_container.update()
+                        with ui.element("div").style("margin-top:0.25rem;"):
+                            with fk_card(dst_name, on_delete=on_dst_delete):
+                                output_action_container.visible = False
+                                output_action_container.update()
 
-                            fk_destination.webui_info(*values)
+                                fk_destination.webui_info(*values)
 
                 def show_destination_selector():
                     fkui.dialogs.show_fkio_selector(
@@ -278,3 +293,46 @@ def _fk_separator(text: str):
             "background-color:var(--q-primary);"
             "position:absolute;"
         )
+
+
+def fk_min_max_sliders(
+        min_slider_label: str,
+        max_slider_label: str,
+        min: float,
+        max: float,
+        step: float,
+        min_slider_value: float,
+        max_slider_value: float
+):
+    with ui.grid(rows=2) as element:
+        with ui.element("div").classes("w-full"):
+            ui.label(min_slider_label)
+            min_slider = ui.slider(
+                min=min, max=max, step=step, value=min_slider_value
+            ).props(f"label switch-label-side")
+
+        with ui.element("div").classes("w-full"):
+            ui.label(max_slider_label)
+            max_slider = ui.slider(
+                min=min, max=max, step=step, value=max_slider_value
+            ).props(f"label inner-min=\"min\"")
+
+        def update_min_slider(*args):
+            max_value = max_slider.value
+
+            min_slider._props["inner-max"] = max_value - step
+            min_slider.update()
+
+        def update_max_slider(*args):
+            min_value = min_slider.value
+
+            max_slider._props["inner-min"] = min_value + step
+            max_slider.update()
+
+        min_slider.on('change', update_max_slider)
+        max_slider.on('change', update_min_slider)
+
+        update_min_slider()
+        update_max_slider()
+
+        return min_slider, max_slider
