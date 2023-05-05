@@ -11,7 +11,7 @@ class Range(ValueElement, DisableableElement):
             min: float,
             max: float,
             step: float = 1.0,
-            value: Optional[dict[str, float]] = None,
+            value: Optional[tuple[float, float]] = None,
             on_change: Optional[Callable] = None
     ) -> None:
         """Slider

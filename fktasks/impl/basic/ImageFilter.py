@@ -3,9 +3,12 @@ import textwrap as _textwrap
 from typing import Optional as _Optional
 
 import PIL.Image as _PIL
+import nicegui.element
+from nicegui import ui
 
 from fktasks import FkImage as _FkImage, FkReportableTask as _FkReportableTask, \
     FkTaskIntensiveness as _FkTaskIntensiveness
+from fkui.nicegui import Range
 
 
 class ImageFilter(_FkReportableTask):
@@ -152,3 +155,14 @@ class ImageFilter(_FkReportableTask):
     @property
     def intensiveness(self) -> _FkTaskIntensiveness:
         return _FkTaskIntensiveness.LOW
+
+    @classmethod
+    def webui_config(cls, *args, **kwargs) -> tuple[nicegui.element.Element, list[nicegui.element.Element]]:
+        with ui.element("div") as element:
+            pass
+
+        return element, []
+
+    @classmethod
+    def webui_name(cls) -> str:
+        return "Image Filter"
