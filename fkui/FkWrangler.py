@@ -9,6 +9,7 @@ import fkui.utils
 import utils
 from fkio.FkDestination import FkDestination
 from fkio.FkSource import FkSource
+from fkio.impl.memory.FkBuffer import FkBuffer
 
 
 class FkPipelineConfiguration:
@@ -28,8 +29,23 @@ class FkWrangler:
         self.src_classes = src_classes
         self.dst_classes = dst_classes
 
+        self.buffer_sources: list[tuple[FkBuffer, list]] = []
+        self.destination_sources: list[tuple[FkBuffer, list]] = []
+
         self.pipeline_offset = 0
-        self.pipeline_configs = {}
+        self.pipeline_configs: dict[int, FkPipelineConfiguration] = {}
+
+    def get_sources(self):
+        pipeline_buffers = []
+        for _, pipeline_config in self.pipeline_configs.items():
+            dst = pipeline_config.fk_destination
+            if isinstance(dst, FkBuffer):
+                pipeline_buffers.append(dst)
+
+        return [*pipeline_buffers, *[src for src in self.src_classes if not issubclass(src, FkBuffer)]]
+
+    def get_destinations(self):
+        return self.dst_classes[:]
 
     def show(self):
         pipeline_container = ui.element("div").classes("w-full")
@@ -49,12 +65,15 @@ class FkWrangler:
                         del self.pipeline_configs[pipeline_offset]
 
                     with pipeline_container:
+                        sources = self.get_sources()
+                        destinations = self.get_destinations()
+
                         pipeline_expansion = fkui.components.fk_pipeline(
                             pipeline_offset,
                             pipeline_config,
                             self.task_classes,
-                            self.src_classes,
-                            self.dst_classes,
+                            sources,
+                            destinations,
                             on_delete=on_pipeline_delete
                         )
 

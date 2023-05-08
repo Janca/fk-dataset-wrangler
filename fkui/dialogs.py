@@ -9,6 +9,7 @@ from nicegui import ui
 import fkui.utils
 from fkio.FkDestination import FkDestination
 from fkio.FkSource import FkSource
+from fkio.impl.memory.FkBuffer import FkBuffer
 from fktasks.FkTask import FkTask
 
 FkButton = collections.namedtuple("FkButton", ["label", "props", "style", "classes"])
@@ -77,7 +78,10 @@ def show_fkio_selector(
 
             ui.select(
                 label=f"{fkio_type} Source",
-                options={fk_src: fk_src.webui_name() for fk_src in fkio_obj},
+                options={
+                    fk_src: (fk_src.webui_name() if not isinstance(fk_src, FkBuffer) else f"Buffer: {fk_src.name}")
+                    for fk_src in fkio_obj
+                },
                 on_change=on_source_select
             ).props("options-dense outlined")
 

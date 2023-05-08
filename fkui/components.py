@@ -1,4 +1,4 @@
-from typing import Callable as _Callable, Callable, Optional
+from typing import Callable as _Callable, Callable, Optional, TYPE_CHECKING
 
 from nicegui import ui
 from nicegui.elements.mixins.value_element import ValueElement
@@ -7,6 +7,9 @@ import fkui.dialogs
 from fkio.FkDestination import FkDestination as _FkDestination
 from fkio.FkSource import FkSource as _FkSource
 from fktasks.FkTask import FkTask
+
+if TYPE_CHECKING:
+    from fkui.FkWrangler import FkPipelineConfiguration
 
 
 def fk_card(title: str, on_delete: _Callable[[...], None] = None):
@@ -51,7 +54,7 @@ def fk_card(title: str, on_delete: _Callable[[...], None] = None):
 
 def fk_pipeline(
         index: int,
-        pipeline_config,
+        pipeline_config: "FkPipelineConfiguration",
         fk_tasks: list[FkTask],
         fk_sources: list[_FkSource],
         fk_destinations: list[_FkSource],
@@ -130,6 +133,8 @@ def fk_pipeline(
                     pass
 
                 def create_source_webui_config_info(fk_source: _FkSource, values):
+                    pipeline_config.fk_source = None
+
                     def on_source_delete():
                         def on_confirmation():
                             source_container.clear()
@@ -222,7 +227,8 @@ def fk_pipeline(
                 with ui.element("div").classes("w-full") as output_container:
                     pass
 
-                def create_destination_webui_config_info(fk_destination: _FkDestination, values):
+                def create_destination_webui_config_info(fk_destination: type[_FkDestination], values):
+                    pipeline_config.fk_destination = fk_destination(*values)
                     dst_name = fk_destination.webui_name()
 
                     def on_dst_delete():
