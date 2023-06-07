@@ -6,7 +6,9 @@ from nicegui.elements.mixins.value_element import ValueElement
 import fkui.dialogs
 from fkio.FkDestination import FkDestination as _FkDestination
 from fkio.FkSource import FkSource as _FkSource
-from fktasks.FkTask import FkTask
+from fkio.impl.memory.FkBuffer import FkBuffer as _FkBuffer
+from fktasks.FkTask import FkTask as _FkTask
+from shared import FkWebUI as _FkWebUI
 
 if TYPE_CHECKING:
     from fkui.FkWrangler import FkPipelineConfiguration
@@ -31,12 +33,12 @@ def fk_card(title: str, on_delete: _Callable[[...], None] = None):
                 "font-size:0.825rem;"
         ):
             if on_delete:
-                ui.button(
+                btn = ui.button(
                     on_click=on_delete
                 ).props(
                     "icon=delete "
                     "flat "
-                    "color=negative "
+                    "color=grey-6 "
                     "size=sm "
                     "dense "
                     ""
@@ -46,8 +48,24 @@ def fk_card(title: str, on_delete: _Callable[[...], None] = None):
                     "right:0;"
                     "z-index:100;"
                     "margin-right:0.25rem;"
-                    "margin-bottom:0.25rem"
+                    "margin-bottom:0.25rem;"
+                    "transition:all 0.2s linear;"
                 )
+
+                def on_mouseover():
+                    btn.props(
+                        "color=negative "
+                        "icon=delete_forever"
+                    )
+
+                def on_mouseleave():
+                    btn.props(
+                        "color=grey-6 "
+                        "icon=delete"
+                    )
+
+                btn.on("mouseover", on_mouseover)
+                btn.on("mouseleave", on_mouseleave)
 
             return ui.element("div").style("margin-top:0.35rem;").classes("w-full")
 
@@ -55,7 +73,7 @@ def fk_card(title: str, on_delete: _Callable[[...], None] = None):
 def fk_pipeline(
         index: int,
         pipeline_config: "FkPipelineConfiguration",
-        fk_tasks: list[FkTask],
+        fk_tasks: list[_FkTask],
         fk_sources: list[_FkSource],
         fk_destinations: list[_FkSource],
         name: str = None,
@@ -102,6 +120,24 @@ def fk_pipeline(
                         pipeline_name_input = ui.input("Pipeline Name", value=name).props("autofocus")
 
                 with ui.element("div").style("justify-self:flex-end;margin-left:auto;"):
+                    btn = ui.button(
+                        on_click=lambda: fkui.dialogs.show_confirm_dialog(
+                            text=f"Are you sure you want to delete pipeline '{name}'?",
+                            title="Delete Pipeline",
+                            on_confirmation=on_delete
+                        )
+                    ).props(
+                        "icon=delete "
+                        "flat "
+                        "color=grey-6 "
+                        "size=sm "
+                        "dense "
+                        ""
+                    ).style(
+                        "margin-right:0.2rem;"
+                        "transition:all 0.3s linear;"
+                    )
+
                     ui.button(
                         on_click=show_edit_dialog
                     ).props(
@@ -112,27 +148,28 @@ def fk_pipeline(
                         "dense "
                         ""
                     ).style("margin-right:0.2rem;")
-                    ui.button(
-                        on_click=lambda: fkui.dialogs.show_confirm_dialog(
-                            text=f"Are you sure you want to delete pipeline '{name}'?",
-                            title="Delete Pipeline",
-                            on_confirmation=on_delete
+
+                    def on_mouseover():
+                        btn.props(
+                            "color=negative "
+                            "icon=delete_forever"
                         )
-                    ).props(
-                        "icon=delete "
-                        "flat "
-                        "color=negative "
-                        "size=sm "
-                        "dense "
-                        ""
-                    ).style("margin-right:0.2rem;")
+
+                    def on_mouseleave():
+                        btn.props(
+                            "color=grey-6 "
+                            "icon=delete"
+                        )
+
+                    btn.on("mouseover", on_mouseover)
+                    btn.on("mouseleave", on_mouseleave)
 
         with ui.grid(rows=3).style("padding:1rem 0; gap:1rem;grid-template-rows:auto 1fr;"):
             with ui.element("div"):
                 with ui.element("div").classes("w-full") as source_container:
                     pass
 
-                def create_source_webui_config_info(fk_source: _FkSource, values):
+                def create_source_webui_config_info(fk_source: _FkWebUI, values):
                     pipeline_config.fk_source = None
 
                     def on_source_delete():
@@ -156,7 +193,11 @@ def fk_pipeline(
                             source_action_container.visible = False
                             source_action_container.update()
 
-                            fk_source.webui_info(*values)
+                            if isinstance(fk_source, _FkBuffer):
+                                fk_source.webui_info(fk_source.name)
+
+                            else:
+                                fk_source.webui_info(*values)
 
                 def show_source_selector():
                     fkui.dialogs.show_fkio_selector("input", fk_sources, on_select=create_source_webui_config_info)
@@ -171,7 +212,7 @@ def fk_pipeline(
                     ).props("icon=input outline")
 
             with ui.element("div"):
-                def create_task_webui(task: FkTask):
+                def create_task_webui(task: _FkTask):
                     task_name = task.webui_name()
 
                     def on_task_delete():

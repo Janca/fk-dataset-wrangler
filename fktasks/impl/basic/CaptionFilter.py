@@ -112,8 +112,8 @@ class CaptionFilter(_FkReportableTask):
     def webui_config(cls, *args, **kwargs) -> tuple[nicegui.element.Element, list[nicegui.element.Element]]:
         with ui.element("div") as element:
             with ui.grid(rows=3):
-                whitelist_tags = ui.input("Whitelist Tags", placeholder="Comma-separated list").props("outlined")
-                blacklist_tags = ui.input("Blacklist Tags", placeholder="Comma-separated list").props("outlined")
+                whitelist_tags = ui.input("Whitelist Tags", placeholder="Comma-separated list").props("outlined dense")
+                blacklist_tags = ui.input("Blacklist Tags", placeholder="Comma-separated list").props("outlined dense")
                 require_caption_text = ui.checkbox("Require Caption Text", value=True)
 
         return element, [whitelist_tags, blacklist_tags, require_caption_text]

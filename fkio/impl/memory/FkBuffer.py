@@ -25,8 +25,8 @@ class FkBuffer(_FkWebUI, _abc.ABC):
     @classmethod
     def webui_info(cls, name: str):
         with ui.element("div") as element:
-            with ui.grid(columns=2):
-                ui.label("Buffer Name:").classes("text-bold")
-                ui.label(name)
+            with ui.grid(columns=2).style("gap:0 0.2rem; grid-template-columns:min-content min-content;"):
+                ui.label("Buffer:").classes("text-bold")
+                ui.label(name).style("margin-right:auto")
 
         return element

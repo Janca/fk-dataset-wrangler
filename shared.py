@@ -1,5 +1,5 @@
 import abc as _abc
-from typing import Union
+from typing import Union as _Union
 
 import nicegui.element
 
@@ -13,7 +13,7 @@ class FkWebUI(_abc.ABC):
 
     @classmethod
     @_abc.abstractmethod
-    def webui_validate(cls, *args, **kwargs) -> Union[bool, list]:
+    def webui_validate(cls, *args, **kwargs) -> _Union[bool, list]:
         pass
 
     @classmethod

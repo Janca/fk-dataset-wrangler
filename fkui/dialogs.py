@@ -10,7 +10,9 @@ import fkui.utils
 from fkio.FkDestination import FkDestination
 from fkio.FkSource import FkSource
 from fkio.impl.memory.FkBuffer import FkBuffer
+from fkio.impl.memory.FkPathBuffer import FkPathBuffer
 from fktasks.FkTask import FkTask
+from shared import FkWebUI
 
 FkButton = collections.namedtuple("FkButton", ["label", "props", "style", "classes"])
 
@@ -18,10 +20,10 @@ FkButton = collections.namedtuple("FkButton", ["label", "props", "style", "class
 def show_fkio_selector(
         fkio_type: str,
         fkio_obj: list[FkSource],
-        on_select: Callable[[Union[FkSource, FkDestination], list], None]
+        on_select: Callable[[Union[FkWebUI, FkDestination], list], None]
 ):
     fkio_type = fkio_type.capitalize()
-    selected_fkio: Optional[FkSource] = None
+    selected_fkio: Optional[FkWebUI] = None
     selected_fkio_inputs: Optional[list[nicegui.element.Element]] = None
 
     def on_confirm():
@@ -29,7 +31,8 @@ def show_fkio_selector(
             return False
 
         if not selected_fkio_inputs:
-            return False
+            on_select(selected_fkio, [])
+            return True
 
         validation = selected_fkio.webui_validate(*selected_fkio_inputs)
         if isinstance(validation, list):
@@ -48,6 +51,7 @@ def show_fkio_selector(
             return False
 
         on_select(selected_fkio, fkui.utils.get_values(*selected_fkio_inputs))
+        return True
 
     with show_confirm_dialog(
             title=f"Select {fkio_type} Source",
@@ -57,24 +61,26 @@ def show_fkio_selector(
     ):
         with ui.element("div").style("padding-top:1rem;"):
 
-            def on_source_select(event: nicegui.elements.mixins.value_element.ValueChangeEventArguments):
+            def on_fkio_inst_select(event: nicegui.elements.mixins.value_element.ValueChangeEventArguments):
                 nonlocal selected_fkio, selected_fkio_inputs
 
-                fk_src: FkSource = event.value
+                fkio_inst: FkSource = event.value
                 if selected_fkio:
+                    selected_fkio_inputs = None
                     source_webui_wrapper.clear()
 
                 with source_webui_wrapper:
-                    ui.label(f"Configure {fkio_type} Source").classes("mt-4 text-bold")
+                    if not isinstance(fkio_inst, FkPathBuffer):  # hide ui on buffer type input
+                        ui.label(f"Configure {fkio_type} Source").classes("mt-4 text-bold")
 
-                    fk_src_webui = fk_src.webui_config()
-                    if not fk_src_webui:
-                        source_webui_wrapper.clear()
+                        fk_src_webui = fkio_inst.webui_config()
+                        if not fk_src_webui:
+                            source_webui_wrapper.clear()
 
-                    else:
-                        _, selected_fkio_inputs = fk_src_webui
+                        else:
+                            _, selected_fkio_inputs = fk_src_webui
 
-                    selected_fkio = fk_src
+                    selected_fkio = fkio_inst
 
             ui.select(
                 label=f"{fkio_type} Source",
@@ -82,7 +88,7 @@ def show_fkio_selector(
                     fk_src: (fk_src.webui_name() if not isinstance(fk_src, FkBuffer) else f"Buffer: {fk_src.name}")
                     for fk_src in fkio_obj
                 },
-                on_change=on_source_select
+                on_change=on_fkio_inst_select
             ).props("options-dense outlined")
 
             with ui.element("form").props("color=negative") as source_webui_wrapper:

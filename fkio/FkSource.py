@@ -9,6 +9,7 @@ from shared import FkWebUI as _FkWebUI
 class FkSource(_FkWebUI, _abc.ABC):
 
     def __init__(self, src_path: _Optional[str], *args, **kwargs):
+        self.name = None
         self.src_path = _os.path.realpath(src_path) if src_path else None
 
     @_abc.abstractmethod

@@ -102,4 +102,4 @@ class FkWrangler:
                     ).props("color=negative outline icon=delete_sweep")
 
         ui.colors(primary="#3078fe")
-        ui.run(title="FkDatasetWrangler", native=True, window_size=(468, 896))
+        ui.run(title="FkDatasetWrangler", native=False)
