@@ -162,33 +162,40 @@ class MidJourneySource(_FkSource):
 
             return True
 
-        for attempt in range(3):
-            try:
-                driver.get("https://www.midjourney.com/home/")
-                time.sleep(10)
+        try:
+            for attempt in range(3):
+                try:
+                    driver.get("https://www.midjourney.com/home/")
+                    time.sleep(10)
 
-                if not _click_signin_button():
-                    continue
+                    if not _click_signin_button():
+                        continue
 
-                time.sleep(5)
-                if not _handle_login_form():
-                    continue
+                    time.sleep(5)
+                    if not _handle_login_form():
+                        continue
 
-                time.sleep(5)
-                if not _handle_additional_authorization():
-                    continue
+                    time.sleep(5)
+                    if not _handle_additional_authorization():
+                        continue
 
-                time.sleep(5)
-                if not _authorize_app():
-                    continue
+                    time.sleep(5)
+                    if not _authorize_app():
+                        continue
 
-                time.sleep(5)
-                if not _save_cookies():
-                    continue
+                    time.sleep(5)
+                    if not _save_cookies():
+                        continue
 
-            except Exception as e:
-                print(f"Login attempt {attempt} failed...")
-                traceback.print_exception(e)
+                except Exception as e:
+                    print(f"Login attempt {attempt} failed...")
+                    traceback.print_exception(e)
+        finally:
+            if driver is not None:
+                try:
+                    driver.quit()
+                except Exception:
+                    pass
 
     def yield_next(self) -> _FkImage:
         pass

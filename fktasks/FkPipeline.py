@@ -40,6 +40,9 @@ class _FkTaskExecutor:
         self._pipeline = pipeline
         self._task = task
 
+        if queue_depth <= 0:
+            queue_depth = max_workers * 3
+
         self._queue: _queue.Queue[_FkTaskContext] = _queue.Queue(queue_depth)
         self._next_executor: _Optional[_FkTaskExecutor] = None
 
@@ -106,6 +109,7 @@ class _FkTaskExecutor:
                         task_context.destroy()
                         continue
 
+                    task_context.image.release()
                     self.submit(task_context)
 
             except _queue.Empty:
@@ -118,7 +122,7 @@ class _FkTaskExecutor:
 
 class _FkTaskContextFactory:
     def __init__(self, pipeline: "FkPipeline"):
-        self._queue: _queue.Queue[_FkImage] = _queue.Queue(maxsize=2048)
+        self._queue: _queue.Queue[_FkImage] = _queue.Queue(maxsize=256)
         self._pipeline = pipeline
         self._started = False
         self.shutdown = False
@@ -182,10 +186,15 @@ class FkPipeline:
         self._scanned_directory_count = 0
         self._images_saved_count = 0
 
+    def _cleanup_futures(self):
+        self._save_futures = [f for f in self._save_futures if not f.done()]
+
     @property
     def active(self):
         if not self._started:
             raise RuntimeError("Pipeline is not started.")
+
+        self._cleanup_futures()
 
         for save_future in self._save_futures:
             if not save_future.done():
@@ -203,7 +212,13 @@ class FkPipeline:
         # noinspection PyProtectedMember
         return [executor._task for executor in self._executors]
 
-    def add_task(self, task: _FkTask, max_workers: int = 20, max_attempts: int = 5, queue_depth: int = -1):
+    def add_task(
+            self,
+            task: _FkTask,
+            max_workers: int = 20,
+            max_attempts: int = 5,
+            queue_depth: int = -1
+    ):
         if self._started:
             raise RuntimeError("Pipeline already started.")
 
@@ -329,3 +344,4 @@ class FkPipeline:
 
         save_future = self._save_executor.submit(save_fn)
         self._save_futures.append(save_future)
+        self._cleanup_futures()

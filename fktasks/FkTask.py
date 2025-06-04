@@ -180,6 +180,15 @@ class FkImage:
             ) as caption_file:
                 caption_file.write(self.caption_text)
 
+    def release(self):
+        """Release loaded image data without marking the image as destroyed."""
+        if self._image is not None:
+            self._image.close()
+
+        self._image = None
+        self._cv2_image = None
+        self._cv2_grayscale_image = None
+
     def destroy(self):
         if self._destroyed:
             return
