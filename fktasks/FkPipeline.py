@@ -10,6 +10,7 @@ from typing import Optional as _Optional
 from fkio.FkDestination import FkDestination as _FkDestination
 from fkio.FkSource import FkSource as _FkSource
 from fktasks.FkTask import FkImage as _FkImage, FkTask as _FkTask, FkReportableTask as _FkExTask
+from fktasks.GlobalImageDataCache import GlobalImageDataCache as _GlobalImageDataCache
 from utils import format_timestamp as _format_timestamp
 
 
@@ -159,7 +160,8 @@ class FkPipeline:
             input_src: _FkSource,
             output_dst: _FkDestination,
             image_ext: str = ".png",
-            caption_text_ext: str = ".txt"
+            caption_text_ext: str = ".txt",
+            cache_capacity: int = 32
     ):
         self.input_source = input_src
         self.output_dst = output_dst
@@ -185,6 +187,8 @@ class FkPipeline:
         self._processed_image_count = 0
         self._scanned_directory_count = 0
         self._images_saved_count = 0
+
+        self._image_cache = _GlobalImageDataCache(cache_capacity)
 
     def _cleanup_futures(self):
         self._save_futures = [f for f in self._save_futures if not f.done()]
@@ -242,6 +246,7 @@ class FkPipeline:
 
         try:
             for input_image in self.input_source.yield_next():
+                input_image._global_cache = self._image_cache
                 self._context_factory.submit(input_image)
                 self._processed_image_count += 1
 
