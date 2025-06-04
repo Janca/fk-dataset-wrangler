@@ -75,3 +75,18 @@ class CaptionNormalizer(_FkTask):
     @classmethod
     def webui_name(cls) -> str:
         return "Caption Normalizer"
+
+    @classmethod
+    def webui_config(cls, *args, **kwargs):
+        # TODO: Implement actual config UI
+        pass
+
+    @classmethod
+    def webui_validate(cls, *args, **kwargs) -> bool:
+        # TODO: Implement actual validation logic
+        return True
+
+    @classmethod
+    def webui_info(cls, *args, **kwargs):
+        # TODO: Implement actual info display logic
+        pass

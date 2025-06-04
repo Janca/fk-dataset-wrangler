@@ -130,3 +130,18 @@ class CHADScoreFilter(_FkReportableTask):
             ("Average CHAD Score", utils.safe_fn(lambda: _numpy.mean(self._chad_scores), -1)),
             ("90th Percentile", utils.safe_fn(lambda: _numpy.percentile(self._chad_scores, 90), -1))
         ]
+
+    @classmethod
+    def webui_config(cls, *args, **kwargs):
+        # TODO: Implement actual config UI
+        pass
+
+    @classmethod
+    def webui_validate(cls, *args, **kwargs) -> bool:
+        # TODO: Implement actual validation logic
+        return True
+
+    @classmethod
+    def webui_info(cls, *args, **kwargs):
+        # TODO: Implement actual info display logic
+        pass

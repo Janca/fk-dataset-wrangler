@@ -132,6 +132,16 @@ class JPGQualityFilter(_FkReportableTask):
         return "JPG Quality Filter"
 
     @classmethod
+    def webui_validate(cls, *args, **kwargs) -> bool:
+        # TODO: Implement actual validation logic
+        return True
+
+    @classmethod
+    def webui_info(cls, *args, **kwargs):
+        # TODO: Implement actual info display logic
+        pass
+
+    @classmethod
     def _get_jpg_quality(cls, image: _PillowImage) -> int:
         """
         Stolen from gist

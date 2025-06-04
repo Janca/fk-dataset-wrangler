@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import time
+import inspect
 
 import fkio
 import fktasks
@@ -77,14 +78,21 @@ if __name__ == '__main__':
     tasks_directory = os.path.join(working_directory, "fktasks", "impl")
     _, tasks_classes = utils.load_modules_and_classes_from_directory(tasks_directory)
 
-    tasks_instances = [task_class() for task_class in tasks_classes if not task_class.__name__.startswith("_")]
+    tasks_instances = []
+    for task_class in tasks_classes:
+        if not task_class.__name__.startswith("_"):
+            print(task_class.__name__)
+            tasks_instances.append(task_class())
+            # if not inspect.isabstract(task_class):  
+            #    tasks_instances.append(task_class())
+
     for task_inst in tasks_instances:
         task_group = arg_parser.add_argument_group(f"{task_inst.__class__.__name__} options")
         task_inst.register_args(task_group)
 
     test_args = [
         "--output-image-ext", ".jpg",
-        "--resource-usage", "make-my-pc-hurt",
+        "--resource-usage", "high",
         # "--require-caption-text",
         # "--required-tags", "scifi,futuristic,armour,armor,cyberpunk,punk,military,android,cybernetic,robot,"
         #                    "synthwave,fantasy,magic,spell,werewolf,mermaid,merman,zombie,wizard,witch,sorcerer,"
@@ -93,16 +101,17 @@ if __name__ == '__main__':
         #                      "shrek,gigachad",
         # "--minimum-dimensions", "896x896",
         # "--normalize-captions",
-        # "--brightness-min-threshold", "0.15",
-        # "--brightness-max-threshold", "0.935",
+        "--brightness-min-threshold", "0.15",
+        "--brightness-max-threshold", "0.935",
         # "--square-ratio",
         # "--modes", "RGB",
         # "--scale", "896",
         # "--blur-threshold", "300",
         # "--entropy-threshold", "6.95",
-        "--chad-score", "7.65",
-        r"E:\MidJourney\2023_05_01",
-        r"E:\MidJourney\2023_05_01_01"
+        "--phash",
+        #"--chad-score", "7.65",
+        r"E:\StableDiffusion\SD Datasets\nextMale\Diamond Pictures Photo\A",
+        r"E:\StableDiffusion\SD Datasets\nextMale\Diamond Pictures Photo Pruned"
     ]
 
     args = arg_parser.parse_args(args=(sys.argv[1:] or test_args or ['--help']))

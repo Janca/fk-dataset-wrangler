@@ -15,8 +15,19 @@ class ImagePerceptualHashFilter(_FkTask):
         "8000000000000000"
     ]
 
+    def register_args(self, arg_parser: _argparse.ArgumentParser):
+        arg_parser.add_argument(
+            "--phash",
+            default=False,
+            action="store_true",
+            required=False,
+            help="generate a phase of an image and remove images that are similar or close mostly white or mostly black. "
+                 "(default: False)"
+        )
+        
+
     def parse_args(self, args: _argparse.Namespace) -> bool:
-        return False
+        return args.phash
 
     def process(self, image: _FkImage) -> bool:
         working_image = image.image.convert("RGB")
@@ -33,3 +44,18 @@ class ImagePerceptualHashFilter(_FkTask):
     @property
     def priority(self) -> int:
         return 700
+
+    @classmethod
+    def webui_config(cls, *args, **kwargs):
+        # TODO: Implement actual config UI
+        pass
+
+    @classmethod
+    def webui_validate(cls, *args, **kwargs) -> bool:
+        # TODO: Implement actual validation logic
+        return True
+
+    @classmethod
+    def webui_info(cls, *args, **kwargs):
+        # TODO: Implement actual info display logic
+        pass
