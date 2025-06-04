@@ -1,2 +1,7 @@
-#from fktasks.impl.cv.BlurFilter import BlurFilter
-#from fktasks.impl.cv.EntropyFilter import EntropyFilter
+"""Computer vision based tasks."""
+
+from .BlurFilter import BlurFilter
+from .EntropyFilter import EntropyFilter
+
+__all__ = ["BlurFilter", "EntropyFilter"]
+

@@ -1,1 +1,6 @@
-#from fktasks.impl.openclip.CHADScoreFilter import CHADScoreFilter
+"""OpenCLIP based task implementations."""
+
+from .CHADScoreFilter import CHADScoreFilter
+
+__all__ = ["CHADScoreFilter"]
+
