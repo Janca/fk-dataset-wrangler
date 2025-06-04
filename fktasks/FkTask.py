@@ -11,12 +11,15 @@ import cv2 as _cv2
 import numpy as _numpy
 from PIL.Image import Image as _PillowImage
 
+from fktasks.GlobalImageDataCache import GlobalImageDataCache as _GlobalImageDataCache
+
 from shared import FkWebUI
 from utils import KNOWN_CAPTION_TEXT_EXTENSIONS as _KNOWN_CAPTION_TEXT_EXTENSIONS
 
 
 class FkImage:
-    def __init__(self, filepath: str, image: _PillowImage = None, caption_text: str = None):
+    def __init__(self, filepath: str, image: _PillowImage = None, caption_text: str = None,
+                 global_cache: _GlobalImageDataCache = None):
         self.filepath = filepath
 
         self._image = image
@@ -28,10 +31,15 @@ class FkImage:
         self._caption_text = caption_text
         self._destroyed = False
 
+        self._global_cache = global_cache
+
     @property
     def image(self) -> _Optional[_PillowImage]:
         if self._destroyed:
             return None
+
+        if self._global_cache:
+            return self._global_cache.get_pillow_image(self.filepath)
 
         if not self._image:
             temp_image = _Pillow.open(self.filepath)
@@ -44,60 +52,58 @@ class FkImage:
     def image(self, image: _PillowImage):
         self._modified_image = True
 
-        self._image = image
-        self._cv2_image = None
+        if self._global_cache:
+            self._global_cache.update_pillow_image(self.filepath, image)
+        else:
+            self._image = image
+            self._cv2_image = None
 
     @property
     def cv2_image(self):
         if self._destroyed:
             return None
-
-        # noinspection PyTypeChecker,PyUnresolvedReferences
-        def pil_to_cv(image: _PillowImage) -> _numpy.ndarray:
-            """
-            Credits: https://gist.github.com/panzi/1ceac1cb30bb6b3450aa5227c02eedd3
-            :param image: Pillow image
-            :return: numpy array for cv2
-            """
-
-            mode = image.mode
-            new_image: _numpy.ndarray
-            if mode == '1':
-                new_image = _numpy.array(image, dtype=_numpy.uint8)
-                new_image *= 255
-            elif mode == 'L':
-                new_image = _numpy.array(image, dtype=_numpy.uint8)
-            elif mode == 'LA' or mode == 'La':
-                new_image = _numpy.array(image.convert('RGBA'), dtype=_numpy.uint8)
-                new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGBA2BGRA)
-            elif mode == 'RGB':
-                new_image = _numpy.array(image, dtype=_numpy.uint8)
-                new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGB2BGR)
-            elif mode == 'RGBA':
-                new_image = _numpy.array(image, dtype=_numpy.uint8)
-                new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGBA2BGRA)
-            elif mode == 'LAB':
-                new_image = _numpy.array(image, dtype=_numpy.uint8)
-                new_image = _cv2.cvtColor(new_image, _cv2.COLOR_LAB2BGR)
-            elif mode == 'HSV':
-                new_image = _numpy.array(image, dtype=_numpy.uint8)
-                new_image = _cv2.cvtColor(new_image, _cv2.COLOR_HSV2BGR)
-            elif mode == 'YCbCr':
-                # XXX: not sure if YCbCr == YCrCb
-                new_image = _numpy.array(image, dtype=_numpy.uint8)
-                new_image = _cv2.cvtColor(new_image, _cv2.COLOR_YCrCb2BGR)
-            elif mode == 'P' or mode == 'CMYK':
-                new_image = _numpy.array(image.convert('RGB'), dtype=_numpy.uint8)
-                new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGB2BGR)
-            elif mode == 'PA' or mode == 'Pa':
-                new_image = _numpy.array(image.convert('RGBA'), dtype=_numpy.uint8)
-                new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGBA2BGRA)
-            else:
-                raise ValueError(f'unhandled image color mode: {mode}')
-
-            return new_image
+        if self._global_cache:
+            return self._global_cache.get_cv2_image(self.filepath)
 
         if self._cv2_image is None:
+            # noinspection PyTypeChecker,PyUnresolvedReferences
+            def pil_to_cv(image: _PillowImage) -> _numpy.ndarray:
+                mode = image.mode
+                new_image: _numpy.ndarray
+                if mode == '1':
+                    new_image = _numpy.array(image, dtype=_numpy.uint8)
+                    new_image *= 255
+                elif mode == 'L':
+                    new_image = _numpy.array(image, dtype=_numpy.uint8)
+                elif mode in ('LA', 'La'):
+                    new_image = _numpy.array(image.convert('RGBA'), dtype=_numpy.uint8)
+                    new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGBA2BGRA)
+                elif mode == 'RGB':
+                    new_image = _numpy.array(image, dtype=_numpy.uint8)
+                    new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGB2BGR)
+                elif mode == 'RGBA':
+                    new_image = _numpy.array(image, dtype=_numpy.uint8)
+                    new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGBA2BGRA)
+                elif mode == 'LAB':
+                    new_image = _numpy.array(image, dtype=_numpy.uint8)
+                    new_image = _cv2.cvtColor(new_image, _cv2.COLOR_LAB2BGR)
+                elif mode == 'HSV':
+                    new_image = _numpy.array(image, dtype=_numpy.uint8)
+                    new_image = _cv2.cvtColor(new_image, _cv2.COLOR_HSV2BGR)
+                elif mode == 'YCbCr':
+                    new_image = _numpy.array(image, dtype=_numpy.uint8)
+                    new_image = _cv2.cvtColor(new_image, _cv2.COLOR_YCrCb2BGR)
+                elif mode in ('P', 'CMYK'):
+                    new_image = _numpy.array(image.convert('RGB'), dtype=_numpy.uint8)
+                    new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGB2BGR)
+                elif mode in ('PA', 'Pa'):
+                    new_image = _numpy.array(image.convert('RGBA'), dtype=_numpy.uint8)
+                    new_image = _cv2.cvtColor(new_image, _cv2.COLOR_RGBA2BGRA)
+                else:
+                    raise ValueError(f'unhandled image color mode: {mode}')
+
+                return new_image
+
             self._cv2_image = pil_to_cv(self.image)
 
         return self._cv2_image
@@ -106,6 +112,8 @@ class FkImage:
     def cv2_grayscale_image(self):
         if self._destroyed:
             return None
+        if self._global_cache:
+            return self._global_cache.get_cv2_grayscale_image(self.filepath)
 
         if self._cv2_grayscale_image is None:
             # noinspection PyUnresolvedReferences
@@ -182,12 +190,15 @@ class FkImage:
 
     def release(self):
         """Release loaded image data without marking the image as destroyed."""
-        if self._image is not None:
-            self._image.close()
+        if self._global_cache:
+            self._global_cache.release_image_data(self.filepath)
+        else:
+            if self._image is not None:
+                self._image.close()
 
-        self._image = None
-        self._cv2_image = None
-        self._cv2_grayscale_image = None
+            self._image = None
+            self._cv2_image = None
+            self._cv2_grayscale_image = None
 
     def destroy(self):
         if self._destroyed:
@@ -195,8 +206,7 @@ class FkImage:
 
         self._destroyed = True
 
-        if self._image is not None:
-            self._image.close()
+        self.release()
 
         # self.filepath = None
         # self._caption_text = None
